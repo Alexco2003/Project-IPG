@@ -45,6 +45,9 @@ namespace lab
         void CreateCarMeshes();
         void RenderCar(const glm::mat4& view, const glm::mat4& proj);
 
+		// ground mesh
+        void CreateMeshGrid(const char* name, int cols, int rows);
+
         // car state
         glm::vec3 carPosition = glm::vec3(0.0f, 0.5f, 0.0f);
         float carYaw = 0.0f;         // rotation around Y (radians)

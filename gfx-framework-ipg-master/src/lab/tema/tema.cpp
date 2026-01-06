@@ -60,6 +60,8 @@ void Tema::Init()
     }
 
     CreateCarMeshes();
+   
+    CreateMeshGrid("ground", 50, 150);
 
     // TODO(student): Load other shaders
     LoadShader("TemaShader");
@@ -165,6 +167,35 @@ void Tema::FrameStart()
 void Tema::Update(float deltaTimeSeconds)
 {
 
+    {
+        Shader* shader = shaders["TemaShader"];
+        glUseProgram(shader->program);
+
+        glm::mat4 model = glm::mat4(1.0f);
+
+        //float groundOffset = 100.0f;
+		float groundOffset = 80.0f;
+
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, carPosition.z - groundOffset));
+
+
+        GLint locUseColor = glGetUniformLocation(shader->program, "u_UseObjectColor");
+        glUniform1i(locUseColor, 1);
+        GLint locColor = glGetUniformLocation(shader->program, "u_ObjectColor");
+        glUniform3f(locColor, 0.0f, 0.6f, 0.1f);
+
+
+        GLint locCurv = glGetUniformLocation(shader->program, "curvatureFactor");
+        glUniform1f(locCurv, 0.02f);
+
+        GLint locPlayer = glGetUniformLocation(shader->program, "playerPos");
+        glUniform3fv(locPlayer, 1, glm::value_ptr(carPosition));
+
+        RenderSimpleMesh(meshes["ground"], shader, model);
+
+        glUniform1i(locUseColor, 0);
+    }
+
 	// car forward/backward movement
     float forward = (inputForward ? 1.4f : 1.0f);
     if (inputBack) 
@@ -188,8 +219,11 @@ void Tema::Update(float deltaTimeSeconds)
     Camera* cam = GetSceneCamera();
     if (cam) {
  
-        float dist = 8.0f;
-        float height = 4.5f;
+        float dist = 15.0f;
+        float height = 13.5f;
+
+        //float dist = 15.0f;
+        //float height = 10.5f;
 
         glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
         glm::vec3 relativeCameraPosition = -forwardDir * dist + glm::vec3(0.0f, height, 0.0f);
@@ -248,6 +282,15 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
     int location = glGetUniformLocation(shader->program, "time");
     glUniform1f(location, Engine::GetElapsedTime());
 
+    GLint loc_player = glGetUniformLocation(shader->program, "playerPos");
+    if (loc_player != -1) {
+        glUniform3fv(loc_player, 1, glm::value_ptr(carPosition));
+    }
+    GLint loc_curv = glGetUniformLocation(shader->program, "curvatureFactor");
+    if (loc_curv != -1) {
+        glUniform1f(loc_curv, 0.02f);
+    }
+
     Camera* cam = GetSceneCamera();
     if (cam) {
         glm::vec3 eye = cam->m_transform->GetWorldPosition();
@@ -285,6 +328,57 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
     // Draw the object
     glBindVertexArray(mesh->GetBuffers()->m_VAO);
     glDrawElements(mesh->GetDrawMode(), static_cast<int>(mesh->indices.size()), GL_UNSIGNED_INT, 0);
+}
+
+void Tema::CreateMeshGrid(const char* name, int cols, int rows)
+{
+    float width = 50.0f;
+    float length = 200.0f;
+
+    std::vector<VertexFormat> vertices;
+    std::vector<unsigned int> indices;
+
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            float u = (float)c / (cols - 1);
+            float v = (float)r / (rows - 1);
+
+            float x = (u - 0.5f) * width;
+            float z = (v - 0.5f) * length;
+            float y = 0.0f;
+
+            glm::vec3 color = glm::vec3(0.2f, 0.7f, 0.3f);
+            glm::vec3 normal = glm::vec3(0, 1, 0);
+            glm::vec2 texCoord = glm::vec2(u, v);
+
+            vertices.push_back(VertexFormat(glm::vec3(x, y, z), color, normal, texCoord));
+        }
+    }
+
+    for (int r = 0; r < rows - 1; r++)
+    {
+        for (int c = 0; c < cols - 1; c++)
+        {
+            int topLeft = r * cols + c;
+            int topRight = topLeft + 1;
+            int bottomLeft = (r + 1) * cols + c;
+            int bottomRight = bottomLeft + 1;
+
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+        }
+    }
+
+    Mesh* mesh = new Mesh(name);
+    mesh->InitFromData(vertices, indices);
+    meshes[mesh->GetMeshID()] = mesh;
 }
 
 void Tema::LoadShader(const std::string& name)
@@ -441,9 +535,17 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
     GLint locEmissionIntensity = glGetUniformLocation(shader->program, "u_EmissionIntensity");
     GLint locEmissionSpeed = glGetUniformLocation(shader->program, "u_EmissionSpeed");
 
-    // base model (car position & orientation)
+    float backOffset = 7.5f;
+    glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+    glm::vec3 visualPosition = carPosition - (forwardDir * backOffset);
+
+    //// base model (car position & orientation)
+    //glm::mat4 model = glm::mat4(1.0f);
+    //model = glm::translate(model, carPosition);
+    //model = glm::rotate(model, carYaw, glm::vec3(0, 1, 0));
+
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, carPosition);
+    model = glm::translate(model, visualPosition);
     model = glm::rotate(model, carYaw, glm::vec3(0, 1, 0));
 
     // main body
@@ -488,7 +590,7 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
 
     for (int i = 0; i < 4; ++i) {
         glm::mat4 wm = glm::translate(model, wheelOffsets[i]);
-        if (i < 2) {
+        if (i < 4) {
             float steer = 0.0f;
             if (inputLeft) steer = 0.25f;
             if (inputRight) steer = -0.25f;
