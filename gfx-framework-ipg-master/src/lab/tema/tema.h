@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -47,6 +47,11 @@ namespace lab
 
 		// ground mesh
         void CreateMeshGrid(const char* name, int cols, int rows);
+
+		// obstacles
+        std::vector<glm::vec3> obstaclePositions; 
+        void InitObstacles();                    
+        void RenderObstacles();                   
 
         // car state
         glm::vec3 carPosition = glm::vec3(0.0f, 0.5f, 0.0f);

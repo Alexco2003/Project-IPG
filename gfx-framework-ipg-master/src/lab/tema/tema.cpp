@@ -62,6 +62,7 @@ void Tema::Init()
     CreateCarMeshes();
    
     CreateMeshGrid("ground", 50, 150);
+    InitObstacles();
 
     // TODO(student): Load other shaders
     LoadShader("TemaShader");
@@ -246,6 +247,21 @@ void Tema::Update(float deltaTimeSeconds)
     glm::mat4 viewMatrix = GetSceneCamera()->GetViewMatrix();
     glm::mat4 projMatrix = GetSceneCamera()->GetProjectionMatrix();
     RenderCar(viewMatrix, projMatrix);
+
+	// update obstacles
+    for (int i = 0; i < obstaclePositions.size(); i++)
+    {
+       
+        if (obstaclePositions[i].z > carPosition.z + 50.0f)
+        {
+      
+            obstaclePositions[i].z = carPosition.z - 300.0f;
+            obstaclePositions[i].x = (rand() % 80 / 10.0f) - 4.0f;
+        }
+    }
+
+
+    RenderObstacles();
 }
 
 
@@ -328,6 +344,53 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
     // Draw the object
     glBindVertexArray(mesh->GetBuffers()->m_VAO);
     glDrawElements(mesh->GetDrawMode(), static_cast<int>(mesh->indices.size()), GL_UNSIGNED_INT, 0);
+}
+
+void Tema::InitObstacles()
+{
+
+    CreateBoxMesh("obstacle", 1.0f, 1.0f, 1.0f, glm::vec3(0.5f, 0.0f, 0.5f));
+
+    for (int i = 0; i < 50; i++)
+    {
+        // Z: din 10 in 10 metri, incepand de la 20 m in fata masinii
+        // Mergem spre -Z (in fata)
+        float z = -20.0f - (i * 10.0f);
+
+        // X: random intre benzile drumului (intre -4 si 4)
+        float x = (rand() % 80 / 10.0f) - 4.0f;
+
+        // Y: 0.5f ca sa stea pe pamant (cubul are 1 m inaltime, originea e in centru)
+        float y = 0.5f;
+
+        obstaclePositions.push_back(glm::vec3(x, y, z));
+    }
+}
+
+void Tema::RenderObstacles()
+{
+    Shader* shader = shaders["TemaShader"];
+    if (!shader) return;
+
+    glUseProgram(shader->program);
+
+    glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+
+    glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
+    glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
+    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.6f, 0.0f, 0.6f); // Mov
+
+    for (int i = 0; i < obstaclePositions.size(); i++)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, obstaclePositions[i]);
+
+        RenderSimpleMesh(meshes["obstacle"], shader, model);
+    }
+
+    
+    glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
 }
 
 void Tema::CreateMeshGrid(const char* name, int cols, int rows)
