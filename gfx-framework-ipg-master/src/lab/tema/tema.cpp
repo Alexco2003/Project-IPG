@@ -257,6 +257,7 @@ void Tema::Update(float deltaTimeSeconds)
      
             obstacles[i].position.z = carPosition.z - 300.0f;
             obstacles[i].position.x = (rand() % 80 / 10.0f) - 4.0f;
+            // obstacles[i].type = rand() % 5;
 
 
             int type = obstacles[i].type;
@@ -264,6 +265,7 @@ void Tema::Update(float deltaTimeSeconds)
             else if (type == 1) obstacles[i].position.y = 2.5f;
             else if (type == 2) obstacles[i].position.y = 1.0f;
             else if (type == 3) obstacles[i].position.y = 0.75f;
+            else if (type == 4) obstacles[i].position.y = 0.05f;
         }
     }
     RenderObstacles();
@@ -365,7 +367,7 @@ void Tema::InitObstacles()
         newObs.position.z = -30.0f - (i * 15.0f); // 15 m intre obs
         // X: random intre benzile drumului (intre -4 si 4)
         newObs.position.x = (rand() % 80 / 10.0f) - 4.0f;
-        newObs.type = rand() % 4;
+        newObs.type = rand() % 5;
 
         if (newObs.type == 0) // cutie
             newObs.position.y = 0.5f;
@@ -375,6 +377,8 @@ void Tema::InitObstacles()
             newObs.position.y = 1.0f;
         else if (newObs.type == 3) // bariera (picior 1.5m -> y=0.75)
             newObs.position.y = 0.75f;
+        else if (newObs.type == 4) 
+            newObs.position.y = 0.05f; // con
 
         newObs.scale = 1.0f;
         obstacles.push_back(newObs);
@@ -392,9 +396,15 @@ void Tema::CreateObstacleMeshes()
     CreateBoxMesh("tree_trunk", 0.6f, 2.0f, 0.6f, glm::vec3(0.5f, 0.35f, 0.05f));
     CreateBoxMesh("tree_crown", 2.0f, 1.5f, 2.0f, glm::vec3(0.0f, 0.5f, 0.0f));
 
-    // 3. piese pentru BARIERa (Type 3)
+    // 3. piese pentru BARIERA (Type 3)
     CreateBoxMesh("barrier_post", 0.4f, 1.5f, 0.4f, glm::vec3(0.8f, 0.1f, 0.1f));
     CreateBoxMesh("barrier_bar", 4.0f, 0.3f, 0.3f, glm::vec3(0.9f, 0.9f, 0.9f));
+
+    // 4. CON DE TRAFIC 
+
+    CreateBoxMesh("cone_base", 1.5f, 0.2f, 1.5f, glm::vec3(1.0f, 0.5f, 0.0f));
+    CreateConeMesh("cone_body_smooth", 0.6f, 2.5f, 30, glm::vec3(1.0f, 0.5f, 0.0f));
+    CreateConeMesh("cone_white_layer", 0.36f, 0.8f, 30, glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
 void Tema::RenderObstacles()
@@ -461,6 +471,22 @@ void Tema::RenderObstacles()
             glm::mat4 bar = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.9f, 0.9f);
             RenderSimpleMesh(meshes["barrier_bar"], shader, bar);
+        }
+        else if (obs.type == 4) 
+        {
+         
+    /*        glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
+            RenderSimpleMesh(meshes["cone_base"], shader, model);*/
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
+            RenderSimpleMesh(meshes["cone_base"], shader, model);
+
+            glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
+            RenderSimpleMesh(meshes["cone_body_smooth"], shader, bodyModel);
+
+         /*   glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
+            RenderSimpleMesh(meshes["cone_body_smooth"], shader, bodyModel);*/
+
         }
     }
 
@@ -642,6 +668,45 @@ void Tema::CreateBoxMesh(const std::string& meshName, float sx, float sy, float 
         indices[i] = i;
 
     Mesh* mesh = new Mesh(meshName);
+    mesh->InitFromData(vertices, indices);
+    meshes[mesh->GetMeshID()] = mesh;
+}
+
+void Tema::CreateConeMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color)
+{
+    std::vector<VertexFormat> vertices;
+    std::vector<unsigned int> indices;
+
+    vertices.emplace_back(glm::vec3(0, height, 0), color, glm::vec3(0, 1, 0), glm::vec2(0.5f, 1.0f));
+
+    for (int i = 0; i < slices; i++)
+    {
+        float angle = 2.0f * 3.14159f * i / slices;
+        float x = radius * cos(angle);
+        float z = radius * sin(angle);
+        vertices.emplace_back(glm::vec3(x, 0, z), color, glm::vec3(x, 0, z), glm::vec2(0.5f, 0.0f));
+    }
+
+    vertices.emplace_back(glm::vec3(0, 0, 0), color, glm::vec3(0, -1, 0), glm::vec2(0.5f, 0.5f));
+    int centerIndex = slices + 1;
+
+    for (int i = 0; i < slices; i++)
+    {
+        int next = (i + 1) % slices;
+
+        int currentVertex = i + 1;
+        int nextVertex = next + 1;
+
+        indices.push_back(0);
+        indices.push_back(currentVertex);
+        indices.push_back(nextVertex);
+
+        indices.push_back(centerIndex);
+        indices.push_back(nextVertex);
+        indices.push_back(currentVertex);
+    }
+
+    Mesh* mesh = new Mesh(name);
     mesh->InitFromData(vertices, indices);
     meshes[mesh->GetMeshID()] = mesh;
 }

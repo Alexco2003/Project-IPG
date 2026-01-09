@@ -59,6 +59,7 @@ namespace lab
         void InitObstacles();                    
         void RenderObstacles();   
         void CreateObstacleMeshes();
+        void CreateConeMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
 
         // car state
         glm::vec3 carPosition = glm::vec3(0.0f, 0.5f, 0.0f);
