@@ -62,7 +62,8 @@ void Tema::Init()
     CreateCarMeshes();
    
     CreateMeshGrid("ground", 50, 150);
-    InitObstacles();
+	CreateObstacleMeshes();
+	InitObstacles();
 
     // TODO(student): Load other shaders
     LoadShader("TemaShader");
@@ -248,19 +249,23 @@ void Tema::Update(float deltaTimeSeconds)
     glm::mat4 projMatrix = GetSceneCamera()->GetProjectionMatrix();
     RenderCar(viewMatrix, projMatrix);
 
-	// update obstacles
-    for (int i = 0; i < obstaclePositions.size(); i++)
+    for (int i = 0; i < obstacles.size(); i++)
     {
-       
-        if (obstaclePositions[i].z > carPosition.z + 50.0f)
+        
+        if (obstacles[i].position.z > carPosition.z + 20.0f)
         {
-      
-            obstaclePositions[i].z = carPosition.z - 300.0f;
-            obstaclePositions[i].x = (rand() % 80 / 10.0f) - 4.0f;
+     
+            obstacles[i].position.z = carPosition.z - 300.0f;
+            obstacles[i].position.x = (rand() % 80 / 10.0f) - 4.0f;
+
+
+            int type = obstacles[i].type;
+            if (type == 0) obstacles[i].position.y = 0.5f;
+            else if (type == 1) obstacles[i].position.y = 2.5f;
+            else if (type == 2) obstacles[i].position.y = 1.0f;
+            else if (type == 3) obstacles[i].position.y = 0.75f;
         }
     }
-
-
     RenderObstacles();
 }
 
@@ -349,22 +354,47 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
 void Tema::InitObstacles()
 {
 
-    CreateBoxMesh("obstacle", 1.0f, 1.0f, 1.0f, glm::vec3(0.5f, 0.0f, 0.5f));
+    CreateBoxMesh("crate", 1.0f, 1.0f, 1.0f, glm::vec3(0.6f, 0.0f, 0.6f));
+
+    obstacles.clear();
 
     for (int i = 0; i < 50; i++)
     {
-        // Z: din 10 in 10 metri, incepand de la 20 m in fata masinii
-        // Mergem spre -Z (in fata)
-        float z = -20.0f - (i * 10.0f);
+        Obstacle newObs;
 
+        newObs.position.z = -30.0f - (i * 15.0f); // 15 m intre obs
         // X: random intre benzile drumului (intre -4 si 4)
-        float x = (rand() % 80 / 10.0f) - 4.0f;
+        newObs.position.x = (rand() % 80 / 10.0f) - 4.0f;
+        newObs.type = rand() % 4;
 
-        // Y: 0.5f ca sa stea pe pamant (cubul are 1 m inaltime, originea e in centru)
-        float y = 0.5f;
+        if (newObs.type == 0) // cutie
+            newObs.position.y = 0.5f;
+        else if (newObs.type == 1) // stalp (5m -> y=2.5)
+            newObs.position.y = 2.5f;
+        else if (newObs.type == 2) // copac (trunchi 2m -> y=1.0)
+            newObs.position.y = 1.0f;
+        else if (newObs.type == 3) // bariera (picior 1.5m -> y=0.75)
+            newObs.position.y = 0.75f;
 
-        obstaclePositions.push_back(glm::vec3(x, y, z));
+        newObs.scale = 1.0f;
+        obstacles.push_back(newObs);
     }
+}
+
+void Tema::CreateObstacleMeshes()
+{
+    // 1. piese pentru STALP (Type 1)
+    CreateBoxMesh("pole_body", 0.3f, 5.0f, 0.3f, glm::vec3(0.4f, 0.4f, 0.4f));
+    CreateBoxMesh("pole_arm", 1.5f, 0.25f, 0.25f, glm::vec3(0.4f, 0.4f, 0.4f));
+    CreateBoxMesh("pole_lamp", 0.4f, 0.4f, 0.4f, glm::vec3(1.0f, 1.0f, 0.6f));
+
+    // 2. Piese pentru COPAC (Type 2)
+    CreateBoxMesh("tree_trunk", 0.6f, 2.0f, 0.6f, glm::vec3(0.5f, 0.35f, 0.05f));
+    CreateBoxMesh("tree_crown", 2.0f, 1.5f, 2.0f, glm::vec3(0.0f, 0.5f, 0.0f));
+
+    // 3. piese pentru BARIERa (Type 3)
+    CreateBoxMesh("barrier_post", 0.4f, 1.5f, 0.4f, glm::vec3(0.8f, 0.1f, 0.1f));
+    CreateBoxMesh("barrier_bar", 4.0f, 0.3f, 0.3f, glm::vec3(0.9f, 0.9f, 0.9f));
 }
 
 void Tema::RenderObstacles()
@@ -375,21 +405,65 @@ void Tema::RenderObstacles()
     glUseProgram(shader->program);
 
     glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
-
     glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
-
     glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
-    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.6f, 0.0f, 0.6f); // Mov
 
-    for (int i = 0; i < obstaclePositions.size(); i++)
+    for (const auto& obs : obstacles)
     {
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, obstaclePositions[i]);
+        model = glm::translate(model, obs.position);
 
-        RenderSimpleMesh(meshes["obstacle"], shader, model);
+        if (obs.type == 0)
+        {
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.6f, 0.2f, 0.6f);
+            RenderSimpleMesh(meshes["crate"], shader, model);
+        }
+        else if (obs.type == 1)
+        {
+  
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.3f, 0.3f, 0.3f);
+            RenderSimpleMesh(meshes["pole_body"], shader, model);
+
+
+            glm::mat4 armModel = glm::translate(model, glm::vec3(0.6f, 2.2f, 0.0f));
+            RenderSimpleMesh(meshes["pole_arm"], shader, armModel);
+
+            glm::mat4 lampModel = glm::translate(model, glm::vec3(1.2f, 2.0f, 0.0f));
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 1.0f, 0.8f);
+            RenderSimpleMesh(meshes["pole_lamp"], shader, lampModel);
+        }
+        else if (obs.type == 2)
+        {
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.45f, 0.35f, 0.2f);
+            RenderSimpleMesh(meshes["tree_trunk"], shader, model);
+
+ 
+            glm::mat4 crown1 = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0f));
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.0f, 0.4f, 0.0f);
+            RenderSimpleMesh(meshes["tree_crown"], shader, crown1);
+
+            glm::mat4 crown2 = glm::translate(model, glm::vec3(0.0f, 2.5f, 0.0f));
+            crown2 = glm::scale(crown2, glm::vec3(0.7f, 0.8f, 0.7f));
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.6f, 0.2f);
+            RenderSimpleMesh(meshes["tree_crown"], shader, crown2);
+        }
+        else if (obs.type == 3)
+        {
+
+            glm::mat4 leftPost = glm::translate(model, glm::vec3(-1.8f, 0.0f, 0.0f));
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.7f, 0.1f, 0.1f);
+            RenderSimpleMesh(meshes["barrier_post"], shader, leftPost);
+
+            glm::mat4 rightPost = glm::translate(model, glm::vec3(1.8f, 0.0f, 0.0f));
+            RenderSimpleMesh(meshes["barrier_post"], shader, rightPost);
+
+            glm::mat4 bar = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f));
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.9f, 0.9f);
+            RenderSimpleMesh(meshes["barrier_bar"], shader, bar);
+        }
     }
 
-    
     glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
 }
 

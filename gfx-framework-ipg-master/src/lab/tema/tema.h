@@ -17,6 +17,12 @@ namespace lab
 
         void Init() override;
 
+        struct Obstacle {
+            glm::vec3 position;
+            int type; // 0 = cutie, 1 = stalp, 2 = copac, 3 = bariera
+            float scale;
+        };
+
     private:
         void FrameStart() override;
         void Update(float deltaTimeSeconds) override;
@@ -49,9 +55,10 @@ namespace lab
         void CreateMeshGrid(const char* name, int cols, int rows);
 
 		// obstacles
-        std::vector<glm::vec3> obstaclePositions; 
+        std::vector<Obstacle> obstacles;
         void InitObstacles();                    
-        void RenderObstacles();                   
+        void RenderObstacles();   
+        void CreateObstacleMeshes();
 
         // car state
         glm::vec3 carPosition = glm::vec3(0.0f, 0.5f, 0.0f);
