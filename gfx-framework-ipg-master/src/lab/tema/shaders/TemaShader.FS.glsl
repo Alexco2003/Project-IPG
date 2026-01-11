@@ -7,6 +7,9 @@ in vec2 v_TexCoord;
 
 out vec4 FragColor;
 
+uniform sampler2D texture_1;
+uniform int u_HasTexture = 0; // 1 if texture is used, 0 otherwise
+
 // object color override
 uniform int  u_UseObjectColor = 0;
 uniform vec3 u_ObjectColor = vec3(1.0, 1.0, 1.0);
@@ -30,7 +33,24 @@ uniform float time = 0.0;
 
 void main()
 {
-    vec3 baseColor = (u_UseObjectColor == 1) ? u_ObjectColor : v_Color;
+    vec3 baseColor;
+    
+    if (u_HasTexture == 1) 
+    {
+
+        vec4 texColor = texture(texture_1, v_TexCoord);
+        
+        if(texColor.a < 0.5) 
+            discard; 
+            
+        baseColor = texColor.rgb;
+        FragColor = texColor;
+    } 
+    else 
+    {
+        
+        baseColor = (u_UseObjectColor == 1) ? u_ObjectColor : v_Color;
+    }
 
     // ambient
     vec3 ambient = ambientColor * baseColor;

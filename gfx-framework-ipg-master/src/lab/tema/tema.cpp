@@ -28,6 +28,10 @@ Tema::~Tema()
 
 void Tema::Init()
 {
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crate.jpg");
+        mapTextures["crate"] = texture;
+    }
 
     // Create a simple quad
     {
@@ -221,11 +225,11 @@ void Tema::Update(float deltaTimeSeconds)
     Camera* cam = GetSceneCamera();
     if (cam) {
  
-        float dist = 15.0f;
-        float height = 13.5f;
-
         //float dist = 15.0f;
-        //float height = 10.5f;
+        //float height = 13.5f;
+
+        float dist = 15.0f;
+        float height = 5.5f;
 
         glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
         glm::vec3 relativeCameraPosition = -forwardDir * dist + glm::vec3(0.0f, height, 0.0f);
@@ -322,6 +326,7 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
             glUniform3f(locEye, eye.x, eye.y, eye.z);
     }
 
+    GLint locHasTexture = glGetUniformLocation(shader->program, "u_HasTexture");
 
     if (texture1)
     {
@@ -333,7 +338,13 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
         glBindTexture(GL_TEXTURE_2D, texture1->GetTextureID());
         glUniform1i(glGetUniformLocation(shader->program, "texture_1"), 0);
 
+        glUniform1i(locHasTexture, 1);
 
+
+    }
+    else
+    {
+        glUniform1i(locHasTexture, 0);
     }
 
     if (texture2)
@@ -426,7 +437,7 @@ void Tema::RenderObstacles()
         if (obs.type == 0)
         {
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.6f, 0.2f, 0.6f);
-            RenderSimpleMesh(meshes["crate"], shader, model);
+            RenderSimpleMesh(meshes["crate"], shader, model, mapTextures["crate"]);
         }
         else if (obs.type == 1)
         {
@@ -617,55 +628,41 @@ void Tema::OnWindowResize(int width, int height)
 {
 }
 
+
 void Tema::CreateBoxMesh(const std::string& meshName, float sx, float sy, float sz, const glm::vec3& color)
 {
-    // 6 faces, 2 triangles per face -> 36 vertices
     std::vector<VertexFormat> vertices;
-    vertices.reserve(36);
+    std::vector<unsigned int> indices;
 
-    // helper lambda to push a triangle (3 positions + normal)
-    auto pushFace = [&](const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& d, const glm::vec3& normal) {
-        // triangle 1: a, b, c
-        vertices.push_back(VertexFormat(a, color, normal, glm::vec2(0.0f, 0.0f)));
-        vertices.push_back(VertexFormat(b, color, normal, glm::vec2(1.0f, 0.0f)));
-        vertices.push_back(VertexFormat(c, color, normal, glm::vec2(0.0f, 1.0f)));
-        // triangle 2: a, c, d
-        vertices.push_back(VertexFormat(a, color, normal, glm::vec2(1.0f, 0.0f)));
-        vertices.push_back(VertexFormat(c, color, normal, glm::vec2(1.0f, 1.0f)));
-        vertices.push_back(VertexFormat(d, color, normal, glm::vec2(0.0f, 1.0f)));
+    glm::vec3 p0 = glm::vec3(-sx / 2, -sy / 2, sz / 2);
+    glm::vec3 p1 = glm::vec3(sx / 2, -sy / 2, sz / 2);
+    glm::vec3 p2 = glm::vec3(-sx / 2, sy / 2, sz / 2);
+    glm::vec3 p3 = glm::vec3(sx / 2, sy / 2, sz / 2);
+    glm::vec3 p4 = glm::vec3(-sx / 2, -sy / 2, -sz / 2);
+    glm::vec3 p5 = glm::vec3(sx / 2, -sy / 2, -sz / 2);
+    glm::vec3 p6 = glm::vec3(-sx / 2, sy / 2, -sz / 2);
+    glm::vec3 p7 = glm::vec3(sx / 2, sy / 2, -sz / 2);
+
+    glm::vec3 n;
+
+    auto addFace = [&](glm::vec3 bl, glm::vec3 br, glm::vec3 tr, glm::vec3 tl, glm::vec3 normal) {
+        int i = vertices.size();
+        vertices.emplace_back(bl, color, normal, glm::vec2(0.0f, 0.0f)); // Stanga-Jos
+        vertices.emplace_back(br, color, normal, glm::vec2(1.0f, 0.0f)); // Dreapta-Jos
+        vertices.emplace_back(tr, color, normal, glm::vec2(1.0f, 1.0f)); // Dreapta-Sus
+        vertices.emplace_back(tl, color, normal, glm::vec2(0.0f, 1.0f)); // Stanga-Sus
+
+        indices.push_back(i); indices.push_back(i + 1); indices.push_back(i + 2);
+        indices.push_back(i); indices.push_back(i + 2); indices.push_back(i + 3);
         };
 
-    // half extents
-    float hx = sx * 0.5f;
-    float hy = sy * 0.5f;
-    float hz = sz * 0.5f;
 
-    glm::vec3 p000(-hx, -hy, -hz);
-    glm::vec3 p001(-hx, -hy, hz);
-    glm::vec3 p010(-hx, hy, -hz);
-    glm::vec3 p011(-hx, hy, hz);
-    glm::vec3 p100(hx, -hy, -hz);
-    glm::vec3 p101(hx, -hy, hz);
-    glm::vec3 p110(hx, hy, -hz);
-    glm::vec3 p111(hx, hy, hz);
-
-    // +X face (x = +hx)  - order CCW when viewed from +X
-    pushFace(p110, p111, p101, p100, glm::vec3(1.0f, 0.0f, 0.0f));
-    // -X face (x = -hx) - order CCW when viewed from -X
-    pushFace(p011, p010, p000, p001, glm::vec3(-1.0f, 0.0f, 0.0f));
-    // +Y face (y = +hy) - top
-    pushFace(p011, p111, p110, p010, glm::vec3(0.0f, 1.0f, 0.0f));
-    // -Y face (y = -hy) - bottom
-    pushFace(p000, p100, p101, p001, glm::vec3(0.0f, -1.0f, 0.0f));
-    // +Z face (z = +hz) - front
-    pushFace(p001, p101, p111, p011, glm::vec3(0.0f, 0.0f, 1.0f));
-    // -Z face (z = -hz) - back
-    pushFace(p100, p000, p010, p110, glm::vec3(0.0f, 0.0f, -1.0f));
-
-    // indices are sequential
-    vector<unsigned int> indices(vertices.size());
-    for (unsigned int i = 0; i < indices.size(); ++i) 
-        indices[i] = i;
+    addFace(p0, p1, p3, p2, glm::vec3(0, 0, 1));  // Fata
+    addFace(p5, p4, p6, p7, glm::vec3(0, 0, -1)); // Spate
+    addFace(p1, p5, p7, p3, glm::vec3(1, 0, 0));  // Dreapta
+    addFace(p4, p0, p2, p6, glm::vec3(-1, 0, 0)); // Stanga
+    addFace(p2, p3, p7, p6, glm::vec3(0, 1, 0));  // Sus
+    addFace(p4, p5, p1, p0, glm::vec3(0, -1, 0)); // Jos
 
     Mesh* mesh = new Mesh(meshName);
     mesh->InitFromData(vertices, indices);
