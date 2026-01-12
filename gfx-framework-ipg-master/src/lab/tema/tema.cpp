@@ -33,6 +33,27 @@ void Tema::Init()
         mapTextures["crate"] = texture;
     }
 
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crateX.jpg");
+        mapTextures["crateX"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\planeTexture.jpg");
+        mapTextures["planeTexture"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\grass.jpg");
+        mapTextures["grass"] = texture;
+    }
+
+    {
+
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\dirt.jpg");
+        mapTextures["dirt"] = texture;
+    }
+
     // Create a simple quad
     {
         vector<glm::vec2> textureCoords
@@ -173,33 +194,36 @@ void Tema::FrameStart()
 void Tema::Update(float deltaTimeSeconds)
 {
 
+    // grass plane
     {
         Shader* shader = shaders["TemaShader"];
         glUseProgram(shader->program);
 
+        glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+        glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
+        glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+
         glm::mat4 model = glm::mat4(1.0f);
+        float groundOffset = 80.0f;
 
-        //float groundOffset = 100.0f;
-		float groundOffset = 80.0f;
+        model = glm::translate(model, glm::vec3(0.0f, -0.02f, carPosition.z - groundOffset));
+        model = glm::scale(model, glm::vec3(2.0f, 1.0f, 1.0f));
 
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, carPosition.z - groundOffset));
+        RenderSimpleMesh(meshes["ground"], shader, model, mapTextures["grass"]);
+    }
 
+	// dirt road plane
+    {
+        Shader* shader = shaders["TemaShader"];
 
-        GLint locUseColor = glGetUniformLocation(shader->program, "u_UseObjectColor");
-        glUniform1i(locUseColor, 1);
-        GLint locColor = glGetUniformLocation(shader->program, "u_ObjectColor");
-        glUniform3f(locColor, 0.0f, 0.6f, 0.1f);
+        glm::mat4 model = glm::mat4(1.0f);
+        float groundOffset = 80.0f;
 
+        model = glm::translate(model, glm::vec3(0.0f, 0.01f, carPosition.z - groundOffset));
+        model = glm::scale(model, glm::vec3(0.24f, 1.0f, 1.0f));
 
-        GLint locCurv = glGetUniformLocation(shader->program, "curvatureFactor");
-        glUniform1f(locCurv, 0.02f);
-
-        GLint locPlayer = glGetUniformLocation(shader->program, "playerPos");
-        glUniform3fv(locPlayer, 1, glm::value_ptr(carPosition));
-
-        RenderSimpleMesh(meshes["ground"], shader, model);
-
-        glUniform1i(locUseColor, 0);
+        RenderSimpleMesh(meshes["ground"], shader, model, mapTextures["dirt"]);
     }
 
 	// car forward/backward movement
@@ -265,7 +289,7 @@ void Tema::Update(float deltaTimeSeconds)
 
 
             int type = obstacles[i].type;
-            if (type == 0) obstacles[i].position.y = 0.5f;
+            if (type == 0) obstacles[i].position.y = 1.25f;
             else if (type == 1) obstacles[i].position.y = 2.5f;
             else if (type == 2) obstacles[i].position.y = 1.0f;
             else if (type == 3) obstacles[i].position.y = 0.75f;
@@ -381,7 +405,7 @@ void Tema::InitObstacles()
         newObs.type = rand() % 5;
 
         if (newObs.type == 0) // cutie
-            newObs.position.y = 0.5f;
+            newObs.position.y = 1.25f;
         else if (newObs.type == 1) // stalp (5m -> y=2.5)
             newObs.position.y = 2.5f;
         else if (newObs.type == 2) // copac (trunchi 2m -> y=1.0)
@@ -398,24 +422,29 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
-    // 1. piese pentru STALP (Type 1)
+	// crate with X bars
+    CreateBoxMesh("crate_core", 2.5f, 2.5f, 2.5f, glm::vec3(1.0f, 1.0f, 1.0f));
+    CreateBoxMesh("crate_x_bar", 3.6f, 0.3f, 0.05f, glm::vec3(0.2f, 0.2f, 0.2f));
+
+
+	// pole pieces
     CreateBoxMesh("pole_body", 0.3f, 5.0f, 0.3f, glm::vec3(0.4f, 0.4f, 0.4f));
     CreateBoxMesh("pole_arm", 1.5f, 0.25f, 0.25f, glm::vec3(0.4f, 0.4f, 0.4f));
     CreateBoxMesh("pole_lamp", 0.4f, 0.4f, 0.4f, glm::vec3(1.0f, 1.0f, 0.6f));
 
-    // 2. Piese pentru COPAC (Type 2)
+	// tree pieces
     CreateBoxMesh("tree_trunk", 0.6f, 2.0f, 0.6f, glm::vec3(0.5f, 0.35f, 0.05f));
     CreateBoxMesh("tree_crown", 2.0f, 1.5f, 2.0f, glm::vec3(0.0f, 0.5f, 0.0f));
 
-    // 3. piese pentru BARIERA (Type 3)
+	// barrier pieces
     CreateBoxMesh("barrier_post", 0.4f, 1.5f, 0.4f, glm::vec3(0.8f, 0.1f, 0.1f));
     CreateBoxMesh("barrier_bar", 4.0f, 0.3f, 0.3f, glm::vec3(0.9f, 0.9f, 0.9f));
 
-    // 4. CON DE TRAFIC 
+	// traffic cone pieces
 
-    CreateBoxMesh("cone_base", 1.5f, 0.2f, 1.5f, glm::vec3(1.0f, 0.5f, 0.0f));
+    CreateBoxMesh("cone_rubber_base", 1.6f, 0.1f, 1.6f, glm::vec3(0.1f, 0.1f, 0.1f));
+    CreateBoxMesh("cone_plastic_base", 1.4f, 0.1f, 1.4f, glm::vec3(1.0f, 0.5f, 0.0f));
     CreateConeMesh("cone_body_smooth", 0.6f, 2.5f, 30, glm::vec3(1.0f, 0.5f, 0.0f));
-    CreateConeMesh("cone_white_layer", 0.36f, 0.8f, 30, glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
 void Tema::RenderObstacles()
@@ -424,80 +453,93 @@ void Tema::RenderObstacles()
     if (!shader) return;
 
     glUseProgram(shader->program);
-
     glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
     glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
     glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
 
     for (const auto& obs : obstacles)
     {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, obs.position);
+        
+        model = glm::scale(model, glm::vec3(obs.scale));
 
         if (obs.type == 0)
         {
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.6f, 0.2f, 0.6f);
-            RenderSimpleMesh(meshes["crate"], shader, model, mapTextures["crate"]);
+           
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 1.0f, 1.0f);
+            RenderSimpleMesh(meshes["crate_core"], shader, model, mapTextures["crate"]);
+
+            
+            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.2f, 0.2f);
+
+           
+            glm::mat4 x1 = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.26f));
+            x1 = glm::rotate(x1, glm::radians(45.0f), glm::vec3(0, 0, 1));
+            RenderSimpleMesh(meshes["crate_x_bar"], shader, x1, mapTextures["crateX"]);
+
+            
+            glm::mat4 x2 = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.26f));
+            x2 = glm::rotate(x2, glm::radians(-45.0f), glm::vec3(0, 0, 1));
+            RenderSimpleMesh(meshes["crate_x_bar"], shader, x2, mapTextures["crateX"]);
         }
         else if (obs.type == 1)
         {
-  
+      
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.3f, 0.3f, 0.3f);
             RenderSimpleMesh(meshes["pole_body"], shader, model);
-
-
+            
             glm::mat4 armModel = glm::translate(model, glm::vec3(0.6f, 2.2f, 0.0f));
             RenderSimpleMesh(meshes["pole_arm"], shader, armModel);
-
+            
             glm::mat4 lampModel = glm::translate(model, glm::vec3(1.2f, 2.0f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 1.0f, 0.8f);
             RenderSimpleMesh(meshes["pole_lamp"], shader, lampModel);
         }
         else if (obs.type == 2)
         {
-
+            
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.45f, 0.35f, 0.2f);
             RenderSimpleMesh(meshes["tree_trunk"], shader, model);
-
- 
+            
             glm::mat4 crown1 = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.0f, 0.4f, 0.0f);
             RenderSimpleMesh(meshes["tree_crown"], shader, crown1);
-
+            
             glm::mat4 crown2 = glm::translate(model, glm::vec3(0.0f, 2.5f, 0.0f));
             crown2 = glm::scale(crown2, glm::vec3(0.7f, 0.8f, 0.7f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.6f, 0.2f);
             RenderSimpleMesh(meshes["tree_crown"], shader, crown2);
         }
-        else if (obs.type == 3)
+        else if (obs.type == 3) 
         {
-
+        
             glm::mat4 leftPost = glm::translate(model, glm::vec3(-1.8f, 0.0f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.7f, 0.1f, 0.1f);
             RenderSimpleMesh(meshes["barrier_post"], shader, leftPost);
-
+           
             glm::mat4 rightPost = glm::translate(model, glm::vec3(1.8f, 0.0f, 0.0f));
             RenderSimpleMesh(meshes["barrier_post"], shader, rightPost);
-
+            
             glm::mat4 bar = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.9f, 0.9f);
             RenderSimpleMesh(meshes["barrier_bar"], shader, bar);
         }
         else if (obs.type == 4) 
         {
-         
-    /*        glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
-            RenderSimpleMesh(meshes["cone_base"], shader, model);*/
+            
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.1f, 0.1f, 0.1f);
+            RenderSimpleMesh(meshes["cone_rubber_base"], shader, model);
 
+
+            glm::mat4 base2 = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
-            RenderSimpleMesh(meshes["cone_base"], shader, model);
+            RenderSimpleMesh(meshes["cone_plastic_base"], shader, base2);
 
-            glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
-            RenderSimpleMesh(meshes["cone_body_smooth"], shader, bodyModel);
-
-         /*   glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
-            RenderSimpleMesh(meshes["cone_body_smooth"], shader, bodyModel);*/
-
+            glm::mat4 body = glm::translate(model, glm::vec3(0.0f, 0.2f, 0.0f));
+            RenderSimpleMesh(meshes["cone_body_smooth"], shader, body);
         }
     }
 
@@ -525,7 +567,7 @@ void Tema::CreateMeshGrid(const char* name, int cols, int rows)
 
             glm::vec3 color = glm::vec3(0.2f, 0.7f, 0.3f);
             glm::vec3 normal = glm::vec3(0, 1, 0);
-            glm::vec2 texCoord = glm::vec2(u, v);
+            glm::vec2 texCoord = glm::vec2(u * 25.0f, v * 100.0f);
 
             vertices.push_back(VertexFormat(glm::vec3(x, y, z), color, normal, texCoord));
         }

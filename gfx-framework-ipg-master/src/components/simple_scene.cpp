@@ -140,7 +140,7 @@ void SimpleScene::AddMeshToList(Mesh * mesh)
 
 void SimpleScene::DrawCoordinateSystem()
 {
-    DrawCoordinateSystem(camera->GetViewMatrix(), camera->GetProjectionMatrix());
+    //DrawCoordinateSystem(camera->GetViewMatrix(), camera->GetProjectionMatrix());
 }
 
 
