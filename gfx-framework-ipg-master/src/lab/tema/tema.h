@@ -23,6 +23,13 @@ namespace lab
             float scale;
         };
 
+        struct Particle {
+            glm::vec3 position;
+            glm::vec3 velocity;
+            float life;         
+            float initialLife;
+        };
+
     private:
         void FrameStart() override;
         void Update(float deltaTimeSeconds) override;
@@ -60,13 +67,16 @@ namespace lab
         void RenderObstacles();   
         void CreateObstacleMeshes();
         void CreateConeMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
+        void CreateCylinderMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
+
 
         // car state
         glm::vec3 carPosition = glm::vec3(0.0f, 0.5f, 0.0f);
         float carYaw = 0.0f;         // rotation around Y (radians)
         float wheelAngle = 0.0f;     // rotation for wheels
+        float currentSteerAngle = 0.0f;
         float forwardSpeed = 6.0f;   // units per second
-        float lateralSpeed = 4.0f;
+        float lateralSpeed = 6.0f;
         float maxLateral = 4.0f;
 
         bool inputLeft = false;
@@ -76,5 +86,9 @@ namespace lab
 
         float wheelRadius = 0.3f;
         float wheelThickness = 0.18f;
+
+        std::vector<Particle> smokeParticles;
+        void UpdateSmokeParticles(float deltaTimeSeconds);
+        void RenderSmokeParticles();
     };
 }   // namespace lab

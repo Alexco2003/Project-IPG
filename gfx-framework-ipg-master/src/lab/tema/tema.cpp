@@ -54,6 +54,23 @@ void Tema::Init()
         mapTextures["dirt"] = texture;
     }
 
+    {
+
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\wheel.jpg");
+        mapTextures["wheel"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\truckBody.jpeg");
+        mapTextures["truckBody"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\truckCabin.jpg");
+        mapTextures["truckCabin"] = texture;
+    }
+
+
     // Create a simple quad
     {
         vector<glm::vec2> textureCoords
@@ -226,6 +243,7 @@ void Tema::Update(float deltaTimeSeconds)
         RenderSimpleMesh(meshes["ground"], shader, model, mapTextures["dirt"]);
     }
 
+
 	// car forward/backward movement
     float forward = (inputForward ? 1.4f : 1.0f);
     if (inputBack) 
@@ -234,16 +252,33 @@ void Tema::Update(float deltaTimeSeconds)
     // always move forward (world feels like it is coming toward you)
     carPosition.z -= forward * forwardSpeed * deltaTimeSeconds;
 
-    // left/right steering
-    if (inputLeft) carPosition.x -= lateralSpeed * deltaTimeSeconds;
-    if (inputRight) carPosition.x += lateralSpeed * deltaTimeSeconds;
-    // clamp lateral
+    // smooth steering
+    float targetSteer = 0.0f;
+    if (inputLeft) targetSteer = 0.5f;        
+    else if (inputRight) targetSteer = -0.5f; 
+
+    float steerSpeed = 3.0f;
+
+    if (currentSteerAngle < targetSteer) {
+        currentSteerAngle += steerSpeed * deltaTimeSeconds;
+        if (currentSteerAngle > targetSteer) currentSteerAngle = targetSteer;
+    }
+    else if (currentSteerAngle > targetSteer) {
+        currentSteerAngle -= steerSpeed * deltaTimeSeconds;
+        if (currentSteerAngle < targetSteer) currentSteerAngle = targetSteer;
+    }
+
+    carPosition.x -= currentSteerAngle * lateralSpeed * deltaTimeSeconds;
     carPosition.x = glm::clamp(carPosition.x, -maxLateral, maxLateral);
 
-    // wheel rotation based on forward travel
-    float wheelCircumference = 2.0f * 3.14159265f * wheelRadius;
+    // rotation of wheels
+    float wheelCircumference = 2.0f * 3.14159f * 0.7f;
     float distanceTraveled = forward * forwardSpeed * deltaTimeSeconds;
-    wheelAngle += distanceTraveled / wheelCircumference * 2.0f * 3.14159265f; // radians
+    wheelAngle += distanceTraveled / wheelCircumference * 2.0f * 3.14159f;
+
+	// smoke particles
+    UpdateSmokeParticles(deltaTimeSeconds);
+    RenderSmokeParticles();
 
 	// camera follow logic
     Camera* cam = GetSceneCamera();
@@ -272,7 +307,6 @@ void Tema::Update(float deltaTimeSeconds)
         cam->Update();
     }
 
-    // render the car
     glm::mat4 viewMatrix = GetSceneCamera()->GetViewMatrix();
     glm::mat4 projMatrix = GetSceneCamera()->GetProjectionMatrix();
     RenderCar(viewMatrix, projMatrix);
@@ -285,7 +319,7 @@ void Tema::Update(float deltaTimeSeconds)
      
             obstacles[i].position.z = carPosition.z - 300.0f;
             obstacles[i].position.x = (rand() % 80 / 10.0f) - 4.0f;
-            // obstacles[i].type = rand() % 5;
+            //obstacles[i].type = rand() % 5;
 
 
             int type = obstacles[i].type;
@@ -750,15 +784,86 @@ void Tema::CreateConeMesh(const std::string& name, float radius, float height, i
     meshes[mesh->GetMeshID()] = mesh;
 }
 
-// create car parts meshes
+// nice cylinder mesh
+void Tema::CreateCylinderMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color)
+{
+    std::vector<VertexFormat> vertices;
+    std::vector<unsigned int> indices;
+
+	// centrul capetelor
+    vertices.emplace_back(glm::vec3(0, -height / 2, 0), color, glm::vec3(0, -1, 0), glm::vec2(0.5f, 0.5f)); // 0
+    vertices.emplace_back(glm::vec3(0, height / 2, 0), color, glm::vec3(0, 1, 0), glm::vec2(0.5f, 0.5f));  // 1
+
+    for (int i = 0; i < slices; i++)
+    {
+        float angle = 2.0f * 3.14159f * i / slices;
+        float x = radius * cos(angle);
+        float z = radius * sin(angle);
+
+        float u = (float)i / slices;
+
+        // cerc jos
+        vertices.emplace_back(glm::vec3(x, -height / 2, z), color, glm::vec3(x, 0, z), glm::vec2(u, 0.0f));
+        // cerc sus
+        vertices.emplace_back(glm::vec3(x, height / 2, z), color, glm::vec3(x, 0, z), glm::vec2(u, 1.0f));
+    }
+
+    // generare indici
+    for (int i = 0; i < slices; i++)
+    {
+        int botCenter = 0;
+        int topCenter = 1;
+        int currentBot = 2 + 2 * i;
+        int currentTop = 2 + 2 * i + 1;
+        int nextBot = 2 + 2 * ((i + 1) % slices);
+        int nextTop = 2 + 2 * ((i + 1) % slices) + 1;
+
+        // capac jos
+        indices.push_back(botCenter);
+        indices.push_back(nextBot);
+        indices.push_back(currentBot);
+
+        // capac sus
+        indices.push_back(topCenter);
+        indices.push_back(currentTop);
+        indices.push_back(nextTop);
+
+        // lateral (2 triunghiuri)
+        indices.push_back(currentBot);
+        indices.push_back(nextBot);
+        indices.push_back(nextTop);
+
+        indices.push_back(currentBot);
+        indices.push_back(nextTop);
+        indices.push_back(currentTop);
+    }
+
+    Mesh* mesh = new Mesh(name);
+    mesh->InitFromData(vertices, indices);
+    meshes[mesh->GetMeshID()] = mesh;
+}
+
+
 void Tema::CreateCarMeshes()
 {
-    // car body: wide rectangle
-    CreateBoxMesh("car_body", 1.6f, 0.5f, 3.0f, glm::vec3(0.8f, 0.1f, 0.1f));
-    // cabin / roof
-    CreateBoxMesh("car_roof", 1.0f, 0.4f, 1.4f, glm::vec3(0.9f, 0.3f, 0.3f));
-    // wheels (flattened boxes)
-    CreateBoxMesh("car_wheel", wheelThickness, wheelRadius * 2.0f, wheelRadius * 2.0f, glm::vec3(0.05f, 0.05f, 0.05f));
+
+	// corp tractor
+    CreateBoxMesh("tractor_body", 1.2f, 0.8f, 2.5f, glm::vec3(0.2f, 0.6f, 0.2f));
+
+	// cabina tractor
+    CreateBoxMesh("tractor_cabin", 1.1f, 1.2f, 1.1f, glm::vec3(0.3f, 0.3f, 0.3f));
+
+    // cos de fum tractor
+    CreateCylinderMesh("tractor_chimney", 0.1f, 1.0f, 16, glm::vec3(0.1f, 0.1f, 0.1f));
+
+    // roti spate - 32 pizza slices
+    CreateCylinderMesh("wheel_big", 0.7f, 0.5f, 32, glm::vec3(0.1f, 0.1f, 0.1f));
+
+    // roti fata
+    CreateCylinderMesh("wheel_small", 0.4f, 0.3f, 32, glm::vec3(0.1f, 0.1f, 0.1f));
+
+	// cub particula fum
+    CreateBoxMesh("smoke_particle", 0.15f, 0.15f, 0.15f, glm::vec3(0.8f, 0.8f, 0.8f));
 }
 
 // render the assembled car 
@@ -766,82 +871,155 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
 {
     Shader* shader = shaders["TemaShader"];
     if (!shader) return;
-
-    // ensure program is active so uniform locations are valid
     glUseProgram(shader->program);
+
+
     GLint locUseColor = glGetUniformLocation(shader->program, "u_UseObjectColor");
     GLint locColor = glGetUniformLocation(shader->program, "u_ObjectColor");
-    GLint locUseEmission = glGetUniformLocation(shader->program, "u_UseEmission");
     GLint locEmissionColor = glGetUniformLocation(shader->program, "u_EmissionColor");
     GLint locEmissionIntensity = glGetUniformLocation(shader->program, "u_EmissionIntensity");
+    GLint locUseEmission = glGetUniformLocation(shader->program, "u_UseEmission");
     GLint locEmissionSpeed = glGetUniformLocation(shader->program, "u_EmissionSpeed");
 
     float backOffset = 7.5f;
     glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
     glm::vec3 visualPosition = carPosition - (forwardDir * backOffset);
 
-    //// base model (car position & orientation)
-    //glm::mat4 model = glm::mat4(1.0f);
-    //model = glm::translate(model, carPosition);
-    //model = glm::rotate(model, carYaw, glm::vec3(0, 1, 0));
-
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, visualPosition);
     model = glm::rotate(model, carYaw, glm::vec3(0, 1, 0));
 
-    // main body
-    glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.25f, 0.0f));
-    if (locUseColor >= 0) 
-        glUniform1i(locUseColor, 1);
-    if (locColor >= 0) 
-        glUniform3f(locColor, 1.0f, 0.0f, 0.0f);
-    // ensure emission disabled for body
-    if (locUseEmission >= 0) 
-        glUniform1i(locUseEmission, 0);
-    RenderSimpleMesh(meshes["car_body"], shader, bodyModel);
+    
+    glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.7f, 0.0f));
+    if (locUseColor >= 0) glUniform1i(locUseColor, 0);
+    if (locColor >= 0) glUniform3f(locColor, 1.0f, 1.0f, 1.0f);
+    RenderSimpleMesh(meshes["tractor_body"], shader, bodyModel, mapTextures["truckBody"]);
 
-    // roof
-    glm::mat4 roofModel = glm::translate(model, glm::vec3(0.0f, 0.6f, -0.25f));
-    if (locColor >= 0) 
-        glUniform3f(locColor, 0.0f, 0.0f, 1.0f);
-    RenderSimpleMesh(meshes["car_roof"], shader, roofModel);
+    glm::mat4 cabinModel = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.6f));
+    RenderSimpleMesh(meshes["tractor_cabin"], shader, cabinModel, mapTextures["truckCabin"]);
 
-    // wheels (enable pulsing emission)
-    float halfWidth = 0.8f;
-    float halfZ = 1.0f;
-    glm::vec3 wheelOffsets[4] = {
-        glm::vec3(halfWidth, 0.12f,  halfZ),
-        glm::vec3(-halfWidth, 0.12f,  halfZ),
-        glm::vec3(halfWidth, 0.12f, -halfZ),
-        glm::vec3(-halfWidth, 0.12f, -halfZ)
-    };
+    glm::mat4 chimneyModel = glm::translate(model, glm::vec3(0.4f, 1.5f, -1.0f));
+    RenderSimpleMesh(meshes["tractor_chimney"], shader, chimneyModel, mapTextures["planeTexture"]);
 
-    // configure emission
-    if (locUseEmission >= 0) 
-        glUniform1i(locUseEmission, 1);
-    if (locEmissionColor >= 0) 
-        glUniform3f(locEmissionColor, 1.0f, 0.85f, 0.35f); // warm pulse color
-    if (locEmissionIntensity >= 0) 
-        glUniform1f(locEmissionIntensity, 0.9f);      // max emission multiplier
+    // roti, efect de noroi 
+    glUniform1i(locUseEmission, 1);
+    glUniform3f(locEmissionColor, 0.4f, 0.25f, 0.1f);
+    glUniform1f(locEmissionIntensity, 0.5f);
     if (locEmissionSpeed >= 0) 
         glUniform1f(locEmissionSpeed, 6.0f);             // pulse speed
 
-    // also set wheel base color (dark)
-    if (locColor >= 0) glUniform3f(locColor, 0.03f, 0.03f, 0.03f);
+    // roti spate
+    float bigWheelY = 0.7f;
+    float bigWheelZ = 0.8f;
+    float bigWheelX = 0.9f;
 
-    for (int i = 0; i < 4; ++i) {
-        glm::mat4 wm = glm::translate(model, wheelOffsets[i]);
-        if (i < 4) {
-            float steer = 0.0f;
-            if (inputLeft) steer = 0.25f;
-            if (inputRight) steer = -0.25f;
-            wm = glm::rotate(wm, steer, glm::vec3(0, 1, 0));
+    // stanga spate
+    glm::mat4 wBL = glm::translate(model, glm::vec3(-bigWheelX, bigWheelY, bigWheelZ));
+    wBL = glm::rotate(wBL, wheelAngle, glm::vec3(1, 0, 0));
+    wBL = glm::rotate(wBL, glm::radians(90.0f), glm::vec3(0, 0, 1));
+    RenderSimpleMesh(meshes["wheel_big"], shader, wBL, mapTextures["wheel"]);
+
+	// dreapta spate
+    glm::mat4 wBR = glm::translate(model, glm::vec3(bigWheelX, bigWheelY, bigWheelZ));
+    wBR = glm::rotate(wBR, wheelAngle, glm::vec3(1, 0, 0));
+    wBR = glm::rotate(wBR, glm::radians(90.0f), glm::vec3(0, 0, 1));
+    RenderSimpleMesh(meshes["wheel_big"], shader, wBR, mapTextures["wheel"]);
+
+    // roti fata
+    float smallWheelY = 0.4f;
+    float smallWheelZ = -1.1f;
+    float smallWheelX = 0.7f;
+
+    // stanga fata
+    glm::mat4 wFL = glm::translate(model, glm::vec3(-smallWheelX, smallWheelY, smallWheelZ));
+    wFL = glm::rotate(wFL, currentSteerAngle, glm::vec3(0, 1, 0));
+    wFL = glm::rotate(wFL, wheelAngle * 1.5f, glm::vec3(1, 0, 0));
+    wFL = glm::rotate(wFL, glm::radians(90.0f), glm::vec3(0, 0, 1));
+    RenderSimpleMesh(meshes["wheel_small"], shader, wFL, mapTextures["wheel"]);
+
+    // dreapta fata
+    glm::mat4 wFR = glm::translate(model, glm::vec3(smallWheelX, smallWheelY, smallWheelZ));
+    wFR = glm::rotate(wFR, currentSteerAngle, glm::vec3(0, 1, 0));
+    wFR = glm::rotate(wFR, wheelAngle * 1.5f, glm::vec3(1, 0, 0));
+    wFR = glm::rotate(wFR, glm::radians(90.0f), glm::vec3(0, 0, 1));
+    RenderSimpleMesh(meshes["wheel_small"], shader, wFR, mapTextures["wheel"]);
+
+    glUniform1i(locUseEmission, 0);
+}
+
+void Tema::UpdateSmokeParticles(float deltaTimeSeconds)
+{
+	// spawn noi particule
+    {
+        Particle p;
+
+        glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+        float backOffset = 7.5f;
+
+        glm::vec3 visualPosition = carPosition - (forwardDir * backOffset);
+
+        glm::vec3 chimneyLocalOffset = glm::vec3(0.4f, 1.5f, -1.0f);
+
+        glm::vec3 rotatedOffset = glm::rotate(glm::mat4(1.0f), carYaw, glm::vec3(0, 1, 0)) * glm::vec4(chimneyLocalOffset, 1.0f);
+
+        p.position = visualPosition + rotatedOffset;
+		p.position.y += 0.5f;
+
+
+        // viteza: iese in sus (Y) si putin in spate/lateral random
+        p.velocity = glm::vec3(
+            (rand() % 100 / 100.0f - 0.5f) * 0.5f, // random X mic
+            2.5f + (rand() % 100 / 100.0f) * 1.0f, // sus puternic (Y)
+            (rand() % 100 / 100.0f - 0.5f) * 0.5f  // random Z mic
+        );
+
+        p.initialLife = 1.0f; 
+        p.life = p.initialLife;
+
+  
+        if (smokeParticles.size() < 200) {
+            smokeParticles.push_back(p);
         }
-        wm = glm::rotate(wm, wheelAngle, glm::vec3(1, 0, 0));
-        RenderSimpleMesh(meshes["car_wheel"], shader, wm);
     }
 
-    // disable emission after wheels
-    if (locUseEmission >= 0) glUniform1i(locUseEmission, 0);
-    if (locUseColor >= 0) glUniform1i(locUseColor, 0);
+    // update particule existente
+    for (int i = 0; i < smokeParticles.size(); i++) {
+        smokeParticles[i].position += smokeParticles[i].velocity * deltaTimeSeconds;
+        smokeParticles[i].life -= deltaTimeSeconds;
+    }
+
+	// delete particule moarte
+    for (int i = smokeParticles.size() - 1; i >= 0; i--) {
+        if (smokeParticles[i].life <= 0) {
+            smokeParticles.erase(smokeParticles.begin() + i);
+        }
+    }
+}
+
+void Tema::RenderSmokeParticles()
+{
+    Shader* shader = shaders["TemaShader"];
+    glUseProgram(shader->program);
+
+
+    glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
+    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.5f, 0.5f, 0.5f);
+    glUniform1i(glGetUniformLocation(shader->program, "u_HasTexture"), 0);
+
+    glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+    glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
+    for (const auto& p : smokeParticles) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, p.position);
+
+        // scade marimea treptat
+        float scale = 0.5f * (p.life / p.initialLife);
+        model = glm::scale(model, glm::vec3(scale));
+        model = glm::rotate(model, p.life * 2.0f, glm::vec3(1, 1, 1));
+
+        RenderSimpleMesh(meshes["smoke_particle"], shader, model);
+    }
+   
+    glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
 }
