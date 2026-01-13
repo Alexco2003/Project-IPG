@@ -243,6 +243,66 @@ void Tema::Update(float deltaTimeSeconds)
         RenderSimpleMesh(meshes["ground"], shader, model, mapTextures["dirt"]);
     }
 
+    {
+        Shader* shader = shaders["TemaShader"];
+        glUseProgram(shader->program);
+
+
+        glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+        glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
+        glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+
+        float fenceX = maxLateral + 1.7f;
+
+        float segmentLength = 4.0f;
+
+
+        int numSegmentsBehind = 5;
+        int numSegmentsFront = 25;
+        float startZ = ((int)(carPosition.z / segmentLength) * segmentLength) + (numSegmentsBehind * segmentLength);
+
+        Texture2D* fenceTex = mapTextures["crate"];
+
+        for (int i = 0; i < numSegmentsBehind + numSegmentsFront; i++)
+        {
+            float currentZ = startZ - (i * segmentLength);
+
+			// gard stanga (-X)
+            {
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(-fenceX, 0.6f, currentZ)); 
+
+             
+                RenderSimpleMesh(meshes["fence_post"], shader, model, fenceTex);
+
+                glm::mat4 board1 = glm::translate(model, glm::vec3(0.0f, 0.3f, 0.0f));
+                RenderSimpleMesh(meshes["fence_board"], shader, board1, fenceTex);
+
+       
+                glm::mat4 board2 = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
+                RenderSimpleMesh(meshes["fence_board"], shader, board2, fenceTex);
+            }
+
+			// gard dreapta (+X)
+            {
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(fenceX, 0.6f, currentZ));
+
+            
+                RenderSimpleMesh(meshes["fence_post"], shader, model, fenceTex);
+
+
+                glm::mat4 board1 = glm::translate(model, glm::vec3(0.0f, 0.3f, 0.0f));
+                RenderSimpleMesh(meshes["fence_board"], shader, board1, fenceTex);
+
+           
+                glm::mat4 board2 = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
+                RenderSimpleMesh(meshes["fence_board"], shader, board2, fenceTex);
+            }
+        }
+    }
+
 
 	// car forward/backward movement
     float forward = (inputForward ? 1.4f : 1.0f);
@@ -456,6 +516,11 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
+
+    // fence
+    CreateBoxMesh("fence_post", 0.2f, 1.2f, 0.2f, glm::vec3(0.4f, 0.2f, 0.1f));
+    CreateBoxMesh("fence_board", 0.1f, 0.2f, 4.1f, glm::vec3(0.4f, 0.2f, 0.1f));
+
 	// crate with X bars
     CreateBoxMesh("crate_core", 2.5f, 2.5f, 2.5f, glm::vec3(1.0f, 1.0f, 1.0f));
     CreateBoxMesh("crate_x_bar", 3.6f, 0.3f, 0.05f, glm::vec3(0.2f, 0.2f, 0.2f));
