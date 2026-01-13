@@ -34,6 +34,31 @@ void Tema::Init()
     }
 
     {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\door.jpg");
+        mapTextures["door"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\brickLight.jpg");
+        mapTextures["brickLight"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\window.jpg");
+        mapTextures["window"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\brick.jpeg");
+        mapTextures["brick"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\trunchiTexture.jpg");
+        mapTextures["trunchiTexture"] = texture;
+    }
+
+    {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crateX.jpg");
         mapTextures["crateX"] = texture;
     }
@@ -46,6 +71,17 @@ void Tema::Init()
     {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\grass.jpg");
         mapTextures["grass"] = texture;
+    }
+
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\frunze.jpg");
+        mapTextures["frunze"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\apple.jpg");
+        mapTextures["apple"] = texture;
     }
 
     {
@@ -303,6 +339,128 @@ void Tema::Update(float deltaTimeSeconds)
         }
     }
 
+    {
+        Shader* shader = shaders["TemaShader"];
+        glUseProgram(shader->program);
+
+        glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+        glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
+
+        float time = Engine::GetElapsedTime();
+
+        float startX = maxLateral + 3.0f;
+        float endX = startX + 50.0f;
+        float stepX = 3.5f;
+
+        float segmentZ = 4.5f;
+        int rowsBehind = 5;
+        int rowsFront = 35;
+        float startZ = ((int)(carPosition.z / segmentZ) * segmentZ) + (rowsBehind * segmentZ);
+
+        for (int i = 0; i < rowsBehind + rowsFront; i++)
+        {
+            float z = startZ - (i * segmentZ);
+
+            for (float x = startX; x < endX; x += stepX)
+            {
+                float sides[2] = { x, -x };
+
+                for (float currentX : sides)
+                {
+                    int seed = (int)(abs(currentX) * 12.9898f + abs(z) * 78.233f);
+                    int objectType = seed % 15;
+
+                    glm::mat4 model = glm::mat4(1.0f);
+                    model = glm::translate(model, glm::vec3(currentX, 0, z));
+
+                    // moara de vant
+                    if (objectType == 0)
+                    {
+                       
+                        glm::mat4 body = glm::scale(model, glm::vec3(1.0f, 2.0f, 1.0f));
+                        body = glm::translate(body, glm::vec3(0, 2.5f, 0));
+
+                        glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+                        RenderSimpleMesh(meshes["windmill_body"], shader, body, mapTextures["brick"]);
+
+                     
+                        glm::mat4 doorMat = glm::translate(model, glm::vec3(0, 1.25f, 0.8f));
+
+                        
+                        RenderSimpleMesh(meshes["windmill_door"], shader, doorMat, mapTextures["door"]);
+
+                     
+                        glm::mat4 winMat = glm::translate(model, glm::vec3(0, 6.0f, 0.8f));
+
+                        
+                        RenderSimpleMesh(meshes["windmill_window"], shader, winMat, mapTextures["window"]);
+
+                        
+                        glm::mat4 roof = glm::translate(model, glm::vec3(0, 10.0f, 0));
+                        RenderSimpleMesh(meshes["windmill_roof"], shader, roof, mapTextures["brickLight"]);
+
+                        
+                        float speed = 2.0f;
+                        float dir = (seed % 2 == 0) ? 1.0f : -1.0f;
+                        float rotAngle = time * speed * dir;
+
+                        glm::mat4 blades = glm::translate(model, glm::vec3(0, 9.5f, 1.1f));
+                        blades = glm::rotate(blades, rotAngle, glm::vec3(0, 0, 1));
+
+                        RenderSimpleMesh(meshes["windmill_blade"], shader, blades, mapTextures["planeTexture"]);
+                        glm::mat4 blade2 = glm::rotate(blades, glm::radians(90.0f), glm::vec3(0, 0, 1));
+                        RenderSimpleMesh(meshes["windmill_blade"], shader, blade2, mapTextures["planeTexture"]);
+                    }
+                    // copac
+                    else
+                    {
+                        bool hasApples = (objectType == 1 || objectType == 2);
+
+                        
+                        glm::mat4 trunk = glm::scale(model, glm::vec3(1.2f, 2.5f, 1.2f));
+                        glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+                        RenderSimpleMesh(meshes["tree_trunk"], shader, trunk, mapTextures["trunchiTexture"]);
+
+                     
+                        glm::mat4 crown1 = glm::translate(model, glm::vec3(0, 2.8f, 0));
+                        glm::mat4 crown1Scale = glm::scale(crown1, glm::vec3(1.2f, 1.2f, 1.2f)); 
+                        RenderSimpleMesh(meshes["tree_crown"], shader, crown1Scale, mapTextures["frunze"]);
+
+                       
+                        glm::mat4 crown2 = glm::translate(model, glm::vec3(0, 4.0f, 0));
+                        crown2 = glm::scale(crown2, glm::vec3(0.9f, 1.0f, 0.9f));
+                        RenderSimpleMesh(meshes["tree_crown"], shader, crown2, mapTextures["frunze"]);
+
+                        if (hasApples)
+                        {
+                            
+                            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+                          
+
+                            glm::vec3 appleOffsets[] = {
+                                
+                                glm::vec3(-1.3f, 2.5f, 1.3f),   
+                                
+                                glm::vec3(1.4f, 3.0f, 0.0f), 
+
+                                glm::vec3(0.9f, 4.0f, -0.9f),
+
+                                glm::vec3(0.0f, 4.8f, 0.0f)
+                            };
+
+                            for (auto off : appleOffsets) {
+                                 glm::mat4 appleM = glm::translate(model, off);
+                                 
+                                 appleM = glm::rotate(appleM, (float)seed, glm::vec3(1,1,1));
+                                
+                                 RenderSimpleMesh(meshes["apple_mesh"], shader, appleM, mapTextures["apple"]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	// car forward/backward movement
     float forward = (inputForward ? 1.4f : 1.0f);
@@ -516,6 +674,15 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
+    // moara de vant
+    CreateBoxMesh("windmill_body", 1.5f, 5.0f, 1.5f, glm::vec3(0.8f, 0.8f, 0.8f));
+    CreateConeMesh("windmill_roof", 1.2f, 1.5f, 16, glm::vec3(0.6f, 0.1f, 0.1f));
+    CreateBoxMesh("windmill_blade", 6.0f, 0.4f, 0.1f, glm::vec3(0.9f, 0.9f, 0.9f));
+    CreateBoxMesh("windmill_door", 1.0f, 2.5f, 0.1f, glm::vec3(0.4f, 0.2f, 0.1f));
+    CreateBoxMesh("windmill_window", 1.2f, 1.2f, 0.1f, glm::vec3(0.2f, 0.2f, 0.5f));
+
+    // apples
+    CreateBoxMesh("apple_mesh", 0.25f, 0.25f, 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
 
     // fence
     CreateBoxMesh("fence_post", 0.2f, 1.2f, 0.2f, glm::vec3(0.4f, 0.2f, 0.1f));
@@ -540,7 +707,6 @@ void Tema::CreateObstacleMeshes()
     CreateBoxMesh("barrier_bar", 4.0f, 0.3f, 0.3f, glm::vec3(0.9f, 0.9f, 0.9f));
 
 	// traffic cone pieces
-
     CreateBoxMesh("cone_rubber_base", 1.6f, 0.1f, 1.6f, glm::vec3(0.1f, 0.1f, 0.1f));
     CreateBoxMesh("cone_plastic_base", 1.4f, 0.1f, 1.4f, glm::vec3(1.0f, 0.5f, 0.0f));
     CreateConeMesh("cone_body_smooth", 0.6f, 2.5f, 30, glm::vec3(1.0f, 0.5f, 0.0f));
@@ -720,7 +886,6 @@ void Tema::LoadShader(const std::string& name)
 void Tema::OnInputUpdate(float deltaTime, int mods)
 {
 }
-
 
 void Tema::OnKeyPress(int key, int mods)
 {
