@@ -111,6 +111,11 @@ void Tema::Init()
         mapTextures["truckCabin"] = texture;
     }
 
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\fan.jpg");
+        mapTextures["fan"] = texture;
+    }
+
 
     // Create a simple quad
     {
@@ -576,7 +581,7 @@ void Tema::Update(float deltaTimeSeconds)
 
 
             int type = obstacles[i].type;
-            if (type == 0) obstacles[i].position.y = 1.25f;
+            if (type == 0) obstacles[i].position.y = 0.0f;
             else if (type == 1) obstacles[i].position.y = 2.5f;
             else if (type == 2) obstacles[i].position.y = 1.0f;
             else if (type == 3) obstacles[i].position.y = 0.75f;
@@ -692,7 +697,7 @@ void Tema::InitObstacles()
         newObs.type = rand() % 5;
 
         if (newObs.type == 0) // cutie
-            newObs.position.y = 1.25f;
+            newObs.position.y = 0.0f;
         else if (newObs.type == 1) // stalp (5m -> y=2.5)
             newObs.position.y = 2.5f;
         else if (newObs.type == 2) // copac (trunchi 2m -> y=1.0)
@@ -709,8 +714,10 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
+	// baloti de fan
+    CreateBoxMesh("hay_bale", 1.5f, 1.0f, 2.5f, glm::vec3(0.9f, 0.8f, 0.2f));
 
-    // stalp pe gard
+    // stalp de pe gard
     CreateBoxMesh("farm_post_body", 0.2f, 4.0f, 0.2f, glm::vec3(0.4f, 0.25f, 0.1f));
     CreateBoxMesh("farm_post_arm", 1.5f, 0.15f, 0.15f, glm::vec3(0.4f, 0.25f, 0.1f));
     CreateBoxMesh("farm_lantern", 0.4f, 0.5f, 0.4f, glm::vec3(0.8f, 0.8f, 0.6f));
@@ -771,25 +778,22 @@ void Tema::RenderObstacles()
         
         model = glm::scale(model, glm::vec3(obs.scale));
 
+        // capita de fan
         if (obs.type == 0)
         {
-           
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 1.0f, 1.0f);
-            RenderSimpleMesh(meshes["crate_core"], shader, model, mapTextures["crate"]);
+            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.8f, 0.2f);
 
-            
-            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 1);
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.2f, 0.2f);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0, 0.5f, 0)), mapTextures["fan"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(1.2f, 0.5f, 0.3f)), mapTextures["fan"]); // Puțin decalat
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-1.1f, 0.5f, -0.2f)), mapTextures["fan"]);
 
-           
-            glm::mat4 x1 = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.26f));
-            x1 = glm::rotate(x1, glm::radians(45.0f), glm::vec3(0, 0, 1));
-            RenderSimpleMesh(meshes["crate_x_bar"], shader, x1, mapTextures["crateX"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0.5f, 1.5f, 0.1f)), mapTextures["fan"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-0.6f, 1.5f, -0.1f)), mapTextures["fan"]);
 
-            
-            glm::mat4 x2 = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.26f));
-            x2 = glm::rotate(x2, glm::radians(-45.0f), glm::vec3(0, 0, 1));
-            RenderSimpleMesh(meshes["crate_x_bar"], shader, x2, mapTextures["crateX"]);
+            glm::mat4 top = glm::translate(model, glm::vec3(0, 2.5f, 0));
+            top = glm::rotate(top, glm::radians(20.0f), glm::vec3(0, 1, 0));
+            RenderSimpleMesh(meshes["hay_bale"], shader, top, mapTextures["fan"]);
         }
         else if (obs.type == 1)
         {
