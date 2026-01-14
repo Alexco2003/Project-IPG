@@ -282,6 +282,62 @@ void Tema::FrameStart()
 
 void Tema::Update(float deltaTimeSeconds)
 {
+	// lumini active
+    activeStreetLights.clear();
+    activeWindmillLights.clear();
+
+    // lumini stalpi
+    {
+        float lampSpacing = 12.0f;
+        float fenceX = maxLateral + 1.7f;
+
+        int carIndex = (int)round(carPosition.z / lampSpacing);
+
+        for (int i = carIndex - 3; i <= carIndex + 5; i++)
+        {
+            float z = i * lampSpacing;
+
+            activeStreetLights.push_back(glm::vec3(-fenceX + 1.4f, 4.4f, z));
+            activeStreetLights.push_back(glm::vec3(fenceX - 1.4f, 4.4f, z));
+        }
+    }
+
+	// morile de vant lumini
+    {
+        float segmentZ = 4.5f;
+        int centerSeg = (int)(carPosition.z / segmentZ);
+
+        for (int i = centerSeg - 10; i <= centerSeg + 20; i++)
+        {
+            float z = i * segmentZ;
+
+            float startX = maxLateral + 3.5f;
+            float endX = startX + 30.0f;
+     
+            for (float x = startX; x < startX + 10.0f; x += 3.5f)
+            {
+                float sides[2] = { x, -x };
+                for (float currentX : sides)
+                {
+                   
+                    int seed = (int)(abs(currentX) * 12.9898f + abs(z) * 78.233f);
+                    int objectType = seed % 15;
+
+                    if (objectType == 0) { 
+                        glm::vec3 winPos = glm::vec3(currentX, 6.0f, z + 1.0f);
+                        activeWindmillLights.push_back(winPos);
+
+                    }
+                }
+            }
+        }
+   
+
+        float time = Engine::GetElapsedTime();
+        float pulse = (sin(time * 3.0f) * 0.5f + 0.5f);
+        currentWindmillColor = glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), pulse);
+    }
+
 
     // grass plane
     {
@@ -704,15 +760,15 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
 	// headlights
     glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
     glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, glm::vec3(0, 1, 0)));
-    glm::vec3 lightDir = glm::normalize(forwardDir + glm::vec3(0, -0.3f, 0)); 
+    glm::vec3 lightDir = glm::normalize(forwardDir + glm::vec3(0, -0.10f, 0)); 
 
 
     float backOffset = 7.5f;
     glm::vec3 visualCarPos = carPosition - (forwardDir * backOffset);
 
-    float distInFata = 1.0f;   
-    float inaltime = 1.2f;   
-    float latime = 0.45f; 
+    float distInFata = 1.3f;   
+    float inaltime = 0.5f;   
+    float latime = 0.5f; 
 
     glm::vec3 headlightOffsetL = visualCarPos + (forwardDir * distInFata) + glm::vec3(0, inaltime, 0) - (rightDir * latime);
     glm::vec3 headlightOffsetR = visualCarPos + (forwardDir * distInFata) + glm::vec3(0, inaltime, 0) + (rightDir * latime);
@@ -732,6 +788,29 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
     }
 
     glUniform1i(glGetUniformLocation(shader->program, "headlightsOn"), headlightsState);
+
+
+    // stalpi lumini
+    int lightsToSend = (int)activeStreetLights.size();
+    if (lightsToSend > 20) lightsToSend = 20;
+    glUniform1i(glGetUniformLocation(shader->program, "streetLightCount"), lightsToSend);
+
+    if (lightsToSend > 0) {
+        glUniform3fv(glGetUniformLocation(shader->program, "streetLightPos"), lightsToSend, glm::value_ptr(activeStreetLights[0]));
+    }
+
+    glUniform3f(glGetUniformLocation(shader->program, "streetLightColor"), 1.0f, 0.8f, 0.4f);
+
+
+    // mori de vant lumini
+    int millsToSend = (int)activeWindmillLights.size();
+    if (millsToSend > 20) millsToSend = 20;
+    glUniform1i(glGetUniformLocation(shader->program, "windmillLightCount"), millsToSend);
+    glUniform3fv(glGetUniformLocation(shader->program, "windmillLightColor"), 1, glm::value_ptr(currentWindmillColor));
+
+    if (millsToSend > 0) {
+        glUniform3fv(glGetUniformLocation(shader->program, "windmillLightPos"), millsToSend, glm::value_ptr(activeWindmillLights[0]));
+    }
 
     // Draw the object
     glBindVertexArray(mesh->GetBuffers()->m_VAO);
@@ -1308,7 +1387,7 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
     glUniform3f(locEmissionColor, 0.4f, 0.25f, 0.1f);
     glUniform1f(locEmissionIntensity, 0.5f);
     if (locEmissionSpeed >= 0) 
-        glUniform1f(locEmissionSpeed, 6.0f);             // pulse speed
+        glUniform1f(locEmissionSpeed, 6.0f); // pulse speed
 
     // roti spate
     float bigWheelY = 0.7f;

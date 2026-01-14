@@ -81,6 +81,10 @@ namespace lab
         float maxLateral = 4.0f;
         int headlightsState = 1; // 1 = aprins, 0 = stins
 
+        std::vector<glm::vec3> activeStreetLights;
+        std::vector<glm::vec3> activeWindmillLights;
+        glm::vec3 currentWindmillColor;
+
         bool inputLeft = false;
         bool inputRight = false;
         bool inputForward = false;
