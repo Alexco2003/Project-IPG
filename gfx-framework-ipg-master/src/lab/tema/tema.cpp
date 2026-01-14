@@ -790,7 +790,7 @@ void Tema::CreateObstacleMeshes()
     CreateConeMesh("sc_hat", 0.4f, 0.5f, 20, glm::vec3(0.3f, 0.2f, 0.1f)); 
 
 	// baloti de fan (obstacol 0)
-    CreateBoxMesh("hay_bale", 1.5f, 1.0f, 2.5f, glm::vec3(0.9f, 0.8f, 0.2f));
+    CreateBoxMesh("hay_bale", 1.0f, 0.7f, 1.7f, glm::vec3(0.9f, 0.8f, 0.2f));
 
 	// stalp de pe gard (environment)
     CreateBoxMesh("farm_post_body", 0.2f, 4.0f, 0.2f, glm::vec3(0.4f, 0.25f, 0.1f));
@@ -861,15 +861,15 @@ void Tema::RenderObstacles()
             glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.8f, 0.2f);
 
-            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0, 0.5f, 0)), mapTextures["fan"]);
-            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(1.2f, 0.5f, 0.3f)), mapTextures["fan"]); // Puțin decalat
-            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-1.1f, 0.5f, -0.2f)), mapTextures["fan"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0, 0.35f, 0)), mapTextures["fan"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0.85f, 0.35f, 0.2f)), mapTextures["fan"]);  
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-0.8f, 0.35f, -0.1f)), mapTextures["fan"]); 
 
-            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0.5f, 1.5f, 0.1f)), mapTextures["fan"]);
-            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-0.6f, 1.5f, -0.1f)), mapTextures["fan"]);
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(0.4f, 1.05f, 0.0f)), mapTextures["fan"]);   
+            RenderSimpleMesh(meshes["hay_bale"], shader, glm::translate(model, glm::vec3(-0.45f, 1.05f, 0.1f)), mapTextures["fan"]); 
 
-            glm::mat4 top = glm::translate(model, glm::vec3(0, 2.5f, 0));
-            top = glm::rotate(top, glm::radians(20.0f), glm::vec3(0, 1, 0));
+            glm::mat4 top = glm::translate(model, glm::vec3(0, 1.75f, 0));
+            top = glm::rotate(top, glm::radians(15.0f), glm::vec3(0, 1, 0));
             RenderSimpleMesh(meshes["hay_bale"], shader, top, mapTextures["fan"]);
         }
 		else if (obs.type == 1) // sperietoare de ciori
