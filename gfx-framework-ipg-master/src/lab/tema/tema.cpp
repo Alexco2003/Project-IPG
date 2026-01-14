@@ -34,6 +34,11 @@ void Tema::Init()
     }
 
     {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\horse.jpg");
+		mapTextures["horse"] = texture;
+    }
+
+    {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\sapca.jpg");
         mapTextures["sapca"] = texture;
     }
@@ -598,15 +603,15 @@ void Tema::Update(float deltaTimeSeconds)
      
             obstacles[i].position.z = carPosition.z - 300.0f;
             obstacles[i].position.x = (rand() % 80 / 10.0f) - 4.0f;
-            //obstacles[i].type = rand() % 5;
+            //obstacles[i].type = rand() % 4;
 
 
             int type = obstacles[i].type;
             if (type == 0) obstacles[i].position.y = 0.0f;
             else if (type == 1) obstacles[i].position.y = 0.0f;
-            else if (type == 2) obstacles[i].position.y = 1.0f;
-            else if (type == 3) obstacles[i].position.y = 0.75f;
-            else if (type == 4) obstacles[i].position.y = 0.05f;
+            else if (type == 2) obstacles[i].position.y = 0.0f;
+            else if (type == 3) obstacles[i].position.y = 0.0f;
+     /*       else if (type == 4) obstacles[i].position.y = 0.05f;*/
         }
     }
     RenderObstacles();
@@ -747,18 +752,18 @@ void Tema::InitObstacles()
         newObs.position.z = -30.0f - (i * 15.0f); // 15 m intre obs
         // X: random intre benzile drumului (intre -4 si 4)
         newObs.position.x = (rand() % 80 / 10.0f) - 4.0f;
-        newObs.type = rand() % 5;
+        newObs.type = rand() % 4;
 
 		if (newObs.type == 0) // capita de fan
             newObs.position.y = 0.0f;
 		else if (newObs.type == 1) // sperietoare de ciori
             newObs.position.y = 0.0f;
-        else if (newObs.type == 2) // copac (trunchi 2m -> y=1.0)
-            newObs.position.y = 1.0f;
-        else if (newObs.type == 3) // bariera (picior 1.5m -> y=0.75)
-            newObs.position.y = 0.75f;
-        else if (newObs.type == 4) 
-            newObs.position.y = 0.05f; // con
+        else if (newObs.type == 2) // cal se uita la dreapta
+            newObs.position.y = 0.0f;
+        else if (newObs.type == 3) // cal se uita la stanga
+            newObs.position.y = 0.0f;
+        //else if (newObs.type == 4) 
+        //    newObs.position.y = 0.05f; // con
 
         newObs.scale = 1.0f;
         obstacles.push_back(newObs);
@@ -767,34 +772,50 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
-	// sperietoare de ciori
+
+    // cal (obstacol 2 & 3)
+    CreateBoxMesh("horse_torso", 2.0f, 0.8f, 0.9f, glm::vec3(0.45f, 0.25f, 0.1f));
+    CreateBoxMesh("horse_neck", 0.5f, 1.2f, 0.45f, glm::vec3(0.45f, 0.25f, 0.1f));
+    CreateBoxMesh("horse_head", 0.5f, 0.5f, 1.0f, glm::vec3(0.45f, 0.25f, 0.1f));
+    CreateBoxMesh("horse_leg", 0.35f, 1.4f, 0.35f, glm::vec3(0.45f, 0.25f, 0.1f));
+    CreateBoxMesh("horse_hoof", 0.4f, 0.2f, 0.4f, glm::vec3(0.1f, 0.1f, 0.1f));
+    CreateSphereMesh("horse_eye", 0.08f, 10, 10, glm::vec3(0.0f, 0.0f, 0.0f));
+
+
+	// sperietoare de ciori (obstacol 1)
     CreateBoxMesh("sc_leg", 0.25f, 0.9f, 0.3f, glm::vec3(0.2f, 0.2f, 0.6f));
     CreateBoxMesh("sc_body", 0.7f, 0.8f, 0.4f, glm::vec3(0.6f, 0.2f, 0.2f)); 
     CreateBoxMesh("sc_arm", 0.8f, 0.25f, 0.25f, glm::vec3(0.6f, 0.2f, 0.2f));
     CreateSphereMesh("sc_head", 0.25f, 20, 20, glm::vec3(0.9f, 0.8f, 0.6f)); 
     CreateConeMesh("sc_hat", 0.4f, 0.5f, 20, glm::vec3(0.3f, 0.2f, 0.1f)); 
 
-	// baloti de fan
+	// baloti de fan (obstacol 0)
     CreateBoxMesh("hay_bale", 1.5f, 1.0f, 2.5f, glm::vec3(0.9f, 0.8f, 0.2f));
 
-    // stalp de pe gard
+	// stalp de pe gard (environment)
     CreateBoxMesh("farm_post_body", 0.2f, 4.0f, 0.2f, glm::vec3(0.4f, 0.25f, 0.1f));
     CreateBoxMesh("farm_post_arm", 1.5f, 0.15f, 0.15f, glm::vec3(0.4f, 0.25f, 0.1f));
     CreateBoxMesh("farm_lantern", 0.4f, 0.5f, 0.4f, glm::vec3(0.8f, 0.8f, 0.6f));
 
-    // moara de vant
+	// moara de vant (environment)
     CreateBoxMesh("windmill_body", 1.5f, 5.0f, 1.5f, glm::vec3(0.8f, 0.8f, 0.8f));
     CreateConeMesh("windmill_roof", 1.2f, 1.5f, 16, glm::vec3(0.6f, 0.1f, 0.1f));
     CreateBoxMesh("windmill_blade", 6.0f, 0.4f, 0.1f, glm::vec3(0.9f, 0.9f, 0.9f));
     CreateBoxMesh("windmill_door", 1.0f, 2.5f, 0.1f, glm::vec3(0.4f, 0.2f, 0.1f));
     CreateBoxMesh("windmill_window", 1.2f, 1.2f, 0.1f, glm::vec3(0.2f, 0.2f, 0.5f));
 
-    // apples
+	// apples for tree (environment)
     CreateBoxMesh("apple_mesh", 0.25f, 0.25f, 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
 
-    // fence
+	// fence (environment)
     CreateBoxMesh("fence_post", 0.2f, 1.2f, 0.2f, glm::vec3(0.4f, 0.2f, 0.1f));
     CreateBoxMesh("fence_board", 0.1f, 0.2f, 4.1f, glm::vec3(0.4f, 0.2f, 0.1f));
+
+	// tree pieces (environment)
+    CreateBoxMesh("tree_trunk", 0.6f, 2.0f, 0.6f, glm::vec3(0.5f, 0.35f, 0.05f));
+    CreateBoxMesh("tree_crown", 2.0f, 1.5f, 2.0f, glm::vec3(0.0f, 0.5f, 0.0f));
+
+
 
 	// crate with X bars
     CreateBoxMesh("crate_core", 2.5f, 2.5f, 2.5f, glm::vec3(1.0f, 1.0f, 1.0f));
@@ -805,10 +826,6 @@ void Tema::CreateObstacleMeshes()
     CreateBoxMesh("pole_body", 0.3f, 5.0f, 0.3f, glm::vec3(0.4f, 0.4f, 0.4f));
     CreateBoxMesh("pole_arm", 1.5f, 0.25f, 0.25f, glm::vec3(0.4f, 0.4f, 0.4f));
     CreateBoxMesh("pole_lamp", 0.4f, 0.4f, 0.4f, glm::vec3(1.0f, 1.0f, 0.6f));
-
-	// tree pieces
-    CreateBoxMesh("tree_trunk", 0.6f, 2.0f, 0.6f, glm::vec3(0.5f, 0.35f, 0.05f));
-    CreateBoxMesh("tree_crown", 2.0f, 1.5f, 2.0f, glm::vec3(0.0f, 0.5f, 0.0f));
 
 	// barrier pieces
     CreateBoxMesh("barrier_post", 0.4f, 1.5f, 0.4f, glm::vec3(0.8f, 0.1f, 0.1f));
@@ -882,49 +899,82 @@ void Tema::RenderObstacles()
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.4f, 0.25f, 0.1f);
             RenderSimpleMesh(meshes["sc_hat"], shader, glm::translate(model, glm::vec3(0, 2.15f, 0)), mapTextures["sapca"]);
         }
-        else if (obs.type == 2)
+
+        else if (obs.type == 2 || obs.type == 3)
         {
-            
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.45f, 0.35f, 0.2f);
-            RenderSimpleMesh(meshes["tree_trunk"], shader, model);
-            
-            glm::mat4 crown1 = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.0f, 0.4f, 0.0f);
-            RenderSimpleMesh(meshes["tree_crown"], shader, crown1);
-            
-            glm::mat4 crown2 = glm::translate(model, glm::vec3(0.0f, 2.5f, 0.0f));
-            crown2 = glm::scale(crown2, glm::vec3(0.7f, 0.8f, 0.7f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.6f, 0.2f);
-            RenderSimpleMesh(meshes["tree_crown"], shader, crown2);
-        }
-        else if (obs.type == 3) 
-        {
-        
-            glm::mat4 leftPost = glm::translate(model, glm::vec3(-1.8f, 0.0f, 0.0f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.7f, 0.1f, 0.1f);
-            RenderSimpleMesh(meshes["barrier_post"], shader, leftPost);
-           
-            glm::mat4 rightPost = glm::translate(model, glm::vec3(1.8f, 0.0f, 0.0f));
-            RenderSimpleMesh(meshes["barrier_post"], shader, rightPost);
-            
-            glm::mat4 bar = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.9f, 0.9f);
-            RenderSimpleMesh(meshes["barrier_bar"], shader, bar);
-        }
-        else if (obs.type == 4) 
-        {
-            
+     
+            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.45f, 0.25f, 0.1f);
+
+            float rotAngle = (obs.type == 2) ? 0.0f : 180.0f;
+
+            glm::mat4 horseBase = glm::rotate(model, glm::radians(rotAngle), glm::vec3(0, 1, 0));
+
+            RenderSimpleMesh(meshes["horse_torso"], shader, glm::translate(horseBase, glm::vec3(0, 1.4f, 0)), mapTextures["horse"]);
+
+            float legX = 0.7f;
+            float legZ = 0.25f;
+            float legY = 0.7f;
+
+            RenderSimpleMesh(meshes["horse_leg"], shader, glm::translate(horseBase, glm::vec3(-legX, legY, legZ)), mapTextures["horse"]);
+            RenderSimpleMesh(meshes["horse_leg"], shader, glm::translate(horseBase, glm::vec3(-legX, legY, -legZ)), mapTextures["horse"]);
+            RenderSimpleMesh(meshes["horse_leg"], shader, glm::translate(horseBase, glm::vec3(legX, legY, legZ)), mapTextures["horse"]);
+            RenderSimpleMesh(meshes["horse_leg"], shader, glm::translate(horseBase, glm::vec3(legX, legY, -legZ)), mapTextures["horse"]);
+
             glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.1f, 0.1f, 0.1f);
-            RenderSimpleMesh(meshes["cone_rubber_base"], shader, model);
+            RenderSimpleMesh(meshes["horse_hoof"], shader, glm::translate(horseBase, glm::vec3(-legX, 0.1f, legZ)), mapTextures["planeTexture"]);
+            RenderSimpleMesh(meshes["horse_hoof"], shader, glm::translate(horseBase, glm::vec3(-legX, 0.1f, -legZ)), mapTextures["planeTexture"]);
+            RenderSimpleMesh(meshes["horse_hoof"], shader, glm::translate(horseBase, glm::vec3(legX, 0.1f, legZ)), mapTextures["planeTexture"]);
+            RenderSimpleMesh(meshes["horse_hoof"], shader, glm::translate(horseBase, glm::vec3(legX, 0.1f, -legZ)), mapTextures["planeTexture"]);
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.45f, 0.25f, 0.1f);
+
+       
+            glm::mat4 neckM = glm::translate(horseBase, glm::vec3(0.8f, 2.0f, 0));
+            neckM = glm::rotate(neckM, glm::radians(20.0f), glm::vec3(0, 0, 1));
+            RenderSimpleMesh(meshes["horse_neck"], shader, neckM, mapTextures["horse"]);
+
+         
+            glm::mat4 headM = glm::translate(horseBase, glm::vec3(1.2f, 2.7f, 0));
+            headM = glm::rotate(headM, glm::radians(20.0f), glm::vec3(0, 0, 1));
+            headM = glm::rotate(headM, glm::radians(90.0f), glm::vec3(0, 1, 0));
+            RenderSimpleMesh(meshes["horse_head"], shader, headM, mapTextures["horse"]);
 
 
-            glm::mat4 base2 = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
-            RenderSimpleMesh(meshes["cone_plastic_base"], shader, base2);
-
-            glm::mat4 body = glm::translate(model, glm::vec3(0.0f, 0.2f, 0.0f));
-            RenderSimpleMesh(meshes["cone_body_smooth"], shader, body);
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.0f, 0.0f, 0.0f);
+            glm::mat4 eyeL = glm::translate(headM, glm::vec3(0.26f, 0.1f, 0.2f));
+            RenderSimpleMesh(meshes["horse_eye"], shader, eyeL, mapTextures["planeTexture"]);
+            glm::mat4 eyeR = glm::translate(headM, glm::vec3(-0.26f, 0.1f, 0.2f));
+            RenderSimpleMesh(meshes["horse_eye"], shader, eyeR, mapTextures["planeTexture"]);
         }
+        //else if (obs.type == 3) 
+        //{
+        //
+        //    glm::mat4 leftPost = glm::translate(model, glm::vec3(-1.8f, 0.0f, 0.0f));
+        //    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.7f, 0.1f, 0.1f);
+        //    RenderSimpleMesh(meshes["barrier_post"], shader, leftPost);
+        //   
+        //    glm::mat4 rightPost = glm::translate(model, glm::vec3(1.8f, 0.0f, 0.0f));
+        //    RenderSimpleMesh(meshes["barrier_post"], shader, rightPost);
+        //    
+        //    glm::mat4 bar = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f));
+        //    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.9f, 0.9f, 0.9f);
+        //    RenderSimpleMesh(meshes["barrier_bar"], shader, bar);
+        //}
+        //else if (obs.type == 4) 
+        //{
+        //    
+        //    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.1f, 0.1f, 0.1f);
+        //    RenderSimpleMesh(meshes["cone_rubber_base"], shader, model);
+
+
+        //    glm::mat4 base2 = glm::translate(model, glm::vec3(0.0f, 0.1f, 0.0f));
+        //    glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 0.5f, 0.0f);
+        //    RenderSimpleMesh(meshes["cone_plastic_base"], shader, base2);
+
+        //    glm::mat4 body = glm::translate(model, glm::vec3(0.0f, 0.2f, 0.0f));
+        //    RenderSimpleMesh(meshes["cone_body_smooth"], shader, body);
+        //}
     }
 
     glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
