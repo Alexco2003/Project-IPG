@@ -34,6 +34,11 @@ void Tema::Init()
     }
 
     {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\lamp.jpg");
+        mapTextures["lamp"] = texture;
+    }
+
+    {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\door.jpg");
         mapTextures["door"] = texture;
     }
@@ -279,62 +284,92 @@ void Tema::Update(float deltaTimeSeconds)
         RenderSimpleMesh(meshes["ground"], shader, model, mapTextures["dirt"]);
     }
 
+	// fence and lamp posts
     {
         Shader* shader = shaders["TemaShader"];
         glUseProgram(shader->program);
 
-
         glUniform3fv(glGetUniformLocation(shader->program, "playerPos"), 1, glm::value_ptr(carPosition));
         glUniform1f(glGetUniformLocation(shader->program, "curvatureFactor"), 0.002f);
-
         glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
 
         float fenceX = maxLateral + 1.7f;
-
-        float segmentLength = 4.0f;
-
-
-        int numSegmentsBehind = 5;
-        int numSegmentsFront = 25;
-        float startZ = ((int)(carPosition.z / segmentLength) * segmentLength) + (numSegmentsBehind * segmentLength);
-
         Texture2D* fenceTex = mapTextures["crate"];
 
-        for (int i = 0; i < numSegmentsBehind + numSegmentsFront; i++)
+        
         {
-            float currentZ = startZ - (i * segmentLength);
+            float segmentLength = 4.0f;
+            int numSegmentsBehind = 5;
+            int numSegmentsFront = 25;
 
-			// gard stanga (-X)
+            int currentGridIndex = (int)round(carPosition.z / segmentLength);
+            float startZ = (currentGridIndex + numSegmentsBehind) * segmentLength;
+
+            for (int i = 0; i < numSegmentsBehind + numSegmentsFront; i++)
             {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(-fenceX, 0.6f, currentZ)); 
+                float currentZ = startZ - (i * segmentLength);
 
-             
-                RenderSimpleMesh(meshes["fence_post"], shader, model, fenceTex);
+                // STANGA
+                glm::mat4 modelL = glm::translate(glm::mat4(1.0f), glm::vec3(-fenceX, 0.6f, currentZ));
+                RenderSimpleMesh(meshes["fence_post"], shader, modelL, fenceTex);
+                RenderSimpleMesh(meshes["fence_board"], shader, glm::translate(modelL, glm::vec3(0, 0.3f, 0)), fenceTex);
+                RenderSimpleMesh(meshes["fence_board"], shader, glm::translate(modelL, glm::vec3(0, -0.3f, 0)), fenceTex);
 
-                glm::mat4 board1 = glm::translate(model, glm::vec3(0.0f, 0.3f, 0.0f));
-                RenderSimpleMesh(meshes["fence_board"], shader, board1, fenceTex);
-
-       
-                glm::mat4 board2 = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
-                RenderSimpleMesh(meshes["fence_board"], shader, board2, fenceTex);
+                // DREAPTA
+                glm::mat4 modelR = glm::translate(glm::mat4(1.0f), glm::vec3(fenceX, 0.6f, currentZ));
+                RenderSimpleMesh(meshes["fence_post"], shader, modelR, fenceTex);
+                RenderSimpleMesh(meshes["fence_board"], shader, glm::translate(modelR, glm::vec3(0, 0.3f, 0)), fenceTex);
+                RenderSimpleMesh(meshes["fence_board"], shader, glm::translate(modelR, glm::vec3(0, -0.3f, 0)), fenceTex);
             }
+        }
 
-			// gard dreapta (+X)
+        {
+            float lampSpacing = 12.0f;
+
+  
+            float manualOffsetZ = 0.0f;
+
+            int lampsBehind = 2;
+            int lampsFront = 10; 
+
+          
+            int lampGridIndex = (int)round(carPosition.z / lampSpacing);
+            float startLampZ = (lampGridIndex + lampsBehind) * lampSpacing;
+
+            for (int i = 0; i < lampsBehind + lampsFront; i++)
             {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(fenceX, 0.6f, currentZ));
-
-            
-                RenderSimpleMesh(meshes["fence_post"], shader, model, fenceTex);
+                float z = startLampZ - (i * lampSpacing) + manualOffsetZ;
 
 
-                glm::mat4 board1 = glm::translate(model, glm::vec3(0.0f, 0.3f, 0.0f));
-                RenderSimpleMesh(meshes["fence_board"], shader, board1, fenceTex);
+                float postY = 3.2f;
 
+                // STANGA (-X)
+                {
+       
+                    glm::mat4 post = glm::translate(glm::mat4(1.0f), glm::vec3(-fenceX, postY, z));
+                    RenderSimpleMesh(meshes["farm_post_body"], shader, post, fenceTex);
+
+     
+                    glm::mat4 arm = glm::translate(glm::mat4(1.0f), glm::vec3(-fenceX + 0.75f, postY + 1.5f, z));
+                    RenderSimpleMesh(meshes["farm_post_arm"], shader, arm, fenceTex);
+
+                
+                    glm::mat4 lantern = glm::translate(glm::mat4(1.0f), glm::vec3(-fenceX + 1.4f, postY + 1.22f, z));
+                    RenderSimpleMesh(meshes["farm_lantern"], shader, lantern, mapTextures["lamp"]); 
+                }
+
+                // DREAPTA (+X)
+                {
            
-                glm::mat4 board2 = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
-                RenderSimpleMesh(meshes["fence_board"], shader, board2, fenceTex);
+                    glm::mat4 post = glm::translate(glm::mat4(1.0f), glm::vec3(fenceX, postY, z));
+                    RenderSimpleMesh(meshes["farm_post_body"], shader, post, fenceTex);
+
+                    glm::mat4 arm = glm::translate(glm::mat4(1.0f), glm::vec3(fenceX - 0.75f, postY + 1.5f, z));
+                    RenderSimpleMesh(meshes["farm_post_arm"], shader, arm, fenceTex);
+
+                    glm::mat4 lantern = glm::translate(glm::mat4(1.0f), glm::vec3(fenceX - 1.4f, postY + 1.22f, z));
+                    RenderSimpleMesh(meshes["farm_lantern"], shader, lantern, mapTextures["lamp"]);
+                }
             }
         }
     }
@@ -348,7 +383,7 @@ void Tema::Update(float deltaTimeSeconds)
 
         float time = Engine::GetElapsedTime();
 
-        float startX = maxLateral + 3.0f;
+        float startX = maxLateral + 3.5f;
         float endX = startX + 50.0f;
         float stepX = 3.5f;
 
@@ -674,6 +709,12 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
+
+    // stalp pe gard
+    CreateBoxMesh("farm_post_body", 0.2f, 4.0f, 0.2f, glm::vec3(0.4f, 0.25f, 0.1f));
+    CreateBoxMesh("farm_post_arm", 1.5f, 0.15f, 0.15f, glm::vec3(0.4f, 0.25f, 0.1f));
+    CreateBoxMesh("farm_lantern", 0.4f, 0.5f, 0.4f, glm::vec3(0.8f, 0.8f, 0.6f));
+
     // moara de vant
     CreateBoxMesh("windmill_body", 1.5f, 5.0f, 1.5f, glm::vec3(0.8f, 0.8f, 0.8f));
     CreateConeMesh("windmill_roof", 1.2f, 1.5f, 16, glm::vec3(0.6f, 0.1f, 0.1f));
