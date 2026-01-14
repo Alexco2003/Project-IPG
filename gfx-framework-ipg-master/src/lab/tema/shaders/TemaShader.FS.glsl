@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 
 in vec3 v_FragPos;
 in vec3 v_Normal;
@@ -25,11 +25,53 @@ uniform vec3 lightDir = vec3(0.3, -1.0, 0.5);
 uniform vec3 lightColor = vec3(1.0, 0.95, 0.9);
 uniform vec3 ambientColor = vec3(0.1, 0.12, 0.14);
 
+// faruri tractor
+uniform vec3 headlightPos[2];
+uniform vec3 headlightDir;
+uniform int headlightsOn = 1;
+
 // camera
 uniform vec3 eyePos = vec3(0.0, 2.0, 5.0);
 
 // time
 uniform float time = 0.0;
+
+
+vec3 ComputeHeadlight(vec3 lightPos, vec3 lightDir, vec3 objectColor)
+{
+    float cut_off = radians(20.0); 
+    float spot_softness = 0.2;     
+
+    vec3 L = normalize(lightPos - v_FragPos);
+    vec3 D = normalize(-lightDir); 
+
+ 
+    float theta = dot(L, D);
+    float epsilon = cut_off * spot_softness;
+    float outer_cut_off = cos(cut_off + epsilon);
+    float inner_cut_off = cos(cut_off - epsilon);
+
+
+    if (theta > outer_cut_off)
+    {
+        float dist = length(lightPos - v_FragPos);
+        float att = 1.0 / (1.0 + 0.05 * dist + 0.005 * dist * dist);
+
+        float intensity = clamp((theta - outer_cut_off) / (inner_cut_off - outer_cut_off), 0.0, 1.0);
+
+        vec3 N = normalize(v_Normal);
+        float diff = max(dot(N, L), 0.0);
+        
+        vec3 V = normalize(eyePos - v_FragPos);
+        vec3 R = reflect(-L, N);
+        float spec = pow(max(dot(V, R), 0.0), 32.0);
+
+        vec3 lightColor = vec3(1.0, 1.0, 0.8);
+        
+        return (diff + spec) * lightColor * objectColor * att * intensity * 2.0;
+    }
+    return vec3(0.0);
+}
 
 void main()
 {
@@ -67,6 +109,13 @@ void main()
     float spec = pow(max(dot(N, H), 0.0), 32.0);
     vec3 specular = spec * lightColor * 0.6;
 
+    // faruri
+    vec3 headlightLight = vec3(0.0);
+    if (headlightsOn == 1) {
+        headlightLight += ComputeHeadlight(headlightPos[0], headlightDir, baseColor);
+        headlightLight += ComputeHeadlight(headlightPos[1], headlightDir, baseColor);
+    }
+
     // emission pulse
     vec3 emission = vec3(0.0);
     if (u_UseEmission == 1) {
@@ -74,6 +123,6 @@ void main()
         emission = u_EmissionColor * pulse;
     }
 
-    vec3 color = ambient + diffuse + specular + emission;
+    vec3 color = ambient + diffuse + specular + headlightLight + emission;
     FragColor = vec4(color, 1.0);
 }

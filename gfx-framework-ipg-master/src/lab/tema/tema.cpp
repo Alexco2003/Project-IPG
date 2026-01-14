@@ -34,6 +34,26 @@ void Tema::Init()
     }
 
     {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\sapca.jpg");
+        mapTextures["sapca"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\camasa.jpg");
+        mapTextures["camasa"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\blugi.jpg");
+        mapTextures["blugi"] = texture;
+    }
+
+    {
+        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\sack.jpg");
+        mapTextures["face"] = texture;
+    }
+
+    {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\lamp.jpg");
         mapTextures["lamp"] = texture;
     }
@@ -57,6 +77,7 @@ void Tema::Init()
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\brick.jpeg");
         mapTextures["brick"] = texture;
     }
+
 
     {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\trunchiTexture.jpg");
@@ -582,7 +603,7 @@ void Tema::Update(float deltaTimeSeconds)
 
             int type = obstacles[i].type;
             if (type == 0) obstacles[i].position.y = 0.0f;
-            else if (type == 1) obstacles[i].position.y = 2.5f;
+            else if (type == 1) obstacles[i].position.y = 0.0f;
             else if (type == 2) obstacles[i].position.y = 1.0f;
             else if (type == 3) obstacles[i].position.y = 0.75f;
             else if (type == 4) obstacles[i].position.y = 0.05f;
@@ -674,6 +695,38 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
         glUniform1i(glGetUniformLocation(shader->program, "texture_2"), 1);
 
     }
+   
+	// headlights
+    glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+    glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, glm::vec3(0, 1, 0)));
+    glm::vec3 lightDir = glm::normalize(forwardDir + glm::vec3(0, -0.3f, 0)); 
+
+
+    float backOffset = 7.5f;
+    glm::vec3 visualCarPos = carPosition - (forwardDir * backOffset);
+
+    float distInFata = 1.0f;   
+    float inaltime = 1.2f;   
+    float latime = 0.45f; 
+
+    glm::vec3 headlightOffsetL = visualCarPos + (forwardDir * distInFata) + glm::vec3(0, inaltime, 0) - (rightDir * latime);
+    glm::vec3 headlightOffsetR = visualCarPos + (forwardDir * distInFata) + glm::vec3(0, inaltime, 0) + (rightDir * latime);
+
+    GLint locHeadlightPos = glGetUniformLocation(shader->program, "headlightPos");
+    if (locHeadlightPos >= 0) {
+        float positions[6] = {
+            headlightOffsetL.x, headlightOffsetL.y, headlightOffsetL.z,
+            headlightOffsetR.x, headlightOffsetR.y, headlightOffsetR.z
+        };
+        glUniform3fv(locHeadlightPos, 2, positions);
+    }
+
+    GLint locHeadlightDir = glGetUniformLocation(shader->program, "headlightDir");
+    if (locHeadlightDir >= 0) {
+        glUniform3fv(locHeadlightDir, 1, glm::value_ptr(lightDir));
+    }
+
+    glUniform1i(glGetUniformLocation(shader->program, "headlightsOn"), headlightsState);
 
     // Draw the object
     glBindVertexArray(mesh->GetBuffers()->m_VAO);
@@ -696,10 +749,10 @@ void Tema::InitObstacles()
         newObs.position.x = (rand() % 80 / 10.0f) - 4.0f;
         newObs.type = rand() % 5;
 
-        if (newObs.type == 0) // cutie
+		if (newObs.type == 0) // capita de fan
             newObs.position.y = 0.0f;
-        else if (newObs.type == 1) // stalp (5m -> y=2.5)
-            newObs.position.y = 2.5f;
+		else if (newObs.type == 1) // sperietoare de ciori
+            newObs.position.y = 0.0f;
         else if (newObs.type == 2) // copac (trunchi 2m -> y=1.0)
             newObs.position.y = 1.0f;
         else if (newObs.type == 3) // bariera (picior 1.5m -> y=0.75)
@@ -714,6 +767,13 @@ void Tema::InitObstacles()
 
 void Tema::CreateObstacleMeshes()
 {
+	// sperietoare de ciori
+    CreateBoxMesh("sc_leg", 0.25f, 0.9f, 0.3f, glm::vec3(0.2f, 0.2f, 0.6f));
+    CreateBoxMesh("sc_body", 0.7f, 0.8f, 0.4f, glm::vec3(0.6f, 0.2f, 0.2f)); 
+    CreateBoxMesh("sc_arm", 0.8f, 0.25f, 0.25f, glm::vec3(0.6f, 0.2f, 0.2f));
+    CreateSphereMesh("sc_head", 0.25f, 20, 20, glm::vec3(0.9f, 0.8f, 0.6f)); 
+    CreateConeMesh("sc_hat", 0.4f, 0.5f, 20, glm::vec3(0.3f, 0.2f, 0.1f)); 
+
 	// baloti de fan
     CreateBoxMesh("hay_bale", 1.5f, 1.0f, 2.5f, glm::vec3(0.9f, 0.8f, 0.2f));
 
@@ -795,18 +855,32 @@ void Tema::RenderObstacles()
             top = glm::rotate(top, glm::radians(20.0f), glm::vec3(0, 1, 0));
             RenderSimpleMesh(meshes["hay_bale"], shader, top, mapTextures["fan"]);
         }
-        else if (obs.type == 1)
+		else if (obs.type == 1) // sperietoare de ciori
         {
-      
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.3f, 0.3f, 0.3f);
-            RenderSimpleMesh(meshes["pole_body"], shader, model);
+ 
+            glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.2f, 0.3f, 0.7f); 
+
             
-            glm::mat4 armModel = glm::translate(model, glm::vec3(0.6f, 2.2f, 0.0f));
-            RenderSimpleMesh(meshes["pole_arm"], shader, armModel);
-            
-            glm::mat4 lampModel = glm::translate(model, glm::vec3(1.2f, 2.0f, 0.0f));
-            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 1.0f, 1.0f, 0.8f);
-            RenderSimpleMesh(meshes["pole_lamp"], shader, lampModel);
+            RenderSimpleMesh(meshes["sc_leg"], shader, glm::translate(model, glm::vec3(-0.2f, 0.45f, 0)), mapTextures["blugi"]);
+            RenderSimpleMesh(meshes["sc_leg"], shader, glm::translate(model, glm::vec3(0.2f, 0.45f, 0)), mapTextures["blugi"]);
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.7f, 0.2f, 0.2f);
+            RenderSimpleMesh(meshes["sc_body"], shader, glm::translate(model, glm::vec3(0, 1.3f, 0)), mapTextures["camasa"]);
+
+            glm::mat4 leftArm = glm::translate(model, glm::vec3(-0.7f, 1.5f, 0));
+            leftArm = glm::rotate(leftArm, glm::radians(15.0f), glm::vec3(0, 0, 1)); 
+            RenderSimpleMesh(meshes["sc_arm"], shader, leftArm, mapTextures["camasa"]);
+
+            glm::mat4 rightArm = glm::translate(model, glm::vec3(0.7f, 1.5f, 0));
+            rightArm = glm::rotate(rightArm, glm::radians(-15.0f), glm::vec3(0, 0, 1));
+            RenderSimpleMesh(meshes["sc_arm"], shader, rightArm, mapTextures["camasa"]);
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.95f, 0.85f, 0.6f); 
+            RenderSimpleMesh(meshes["sc_head"], shader, glm::translate(model, glm::vec3(0, 1.95f, 0)), mapTextures["face"]);
+
+            glUniform3f(glGetUniformLocation(shader->program, "u_ObjectColor"), 0.4f, 0.25f, 0.1f);
+            RenderSimpleMesh(meshes["sc_hat"], shader, glm::translate(model, glm::vec3(0, 2.15f, 0)), mapTextures["sapca"]);
         }
         else if (obs.type == 2)
         {
@@ -939,6 +1013,9 @@ void Tema::OnKeyPress(int key, int mods)
     if (key == GLFW_KEY_D) inputRight = true;
     if (key == GLFW_KEY_W) inputForward = true;
     if (key == GLFW_KEY_S) inputBack = true;
+    if (key == GLFW_KEY_F) {
+        headlightsState = 1 - headlightsState;
+    }
 }
 
 
@@ -1297,4 +1374,43 @@ void Tema::RenderSmokeParticles()
     }
    
     glUniform1i(glGetUniformLocation(shader->program, "u_UseObjectColor"), 0);
+}
+
+void Tema::CreateSphereMesh(const std::string& name, float radius, int rings, int sectors, glm::vec3 color)
+{
+    std::vector<VertexFormat> vertices;
+    std::vector<unsigned int> indices;
+
+    float const R = 1.0f / (float)(rings - 1);
+    float const S = 1.0f / (float)(sectors - 1);
+
+    for (int r = 0; r < rings; r++)
+    {
+        for (int s = 0; s < sectors; s++)
+        {
+            float const y = sin(-1.570796f + 3.14159f * r * R);
+            float const x = cos(2 * 3.14159f * s * S) * sin(3.14159f * r * R);
+            float const z = sin(2 * 3.14159f * s * S) * sin(3.14159f * r * R);
+
+            vertices.emplace_back(glm::vec3(x * radius, y * radius, z * radius), color, glm::vec3(x, y, z), glm::vec2(s * S, r * R));
+        }
+    }
+
+    for (int r = 0; r < rings - 1; r++)
+    {
+        for (int s = 0; s < sectors - 1; s++)
+        {
+            indices.push_back(r * sectors + s);
+            indices.push_back((r + 1) * sectors + s);
+            indices.push_back((r + 1) * sectors + (s + 1));
+
+            indices.push_back(r * sectors + s);
+            indices.push_back((r + 1) * sectors + (s + 1));
+            indices.push_back(r * sectors + (s + 1));
+        }
+    }
+
+    Mesh* mesh = new Mesh(name);
+    mesh->InitFromData(vertices, indices);
+    meshes[mesh->GetMeshID()] = mesh;
 }

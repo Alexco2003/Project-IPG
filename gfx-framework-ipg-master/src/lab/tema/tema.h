@@ -68,6 +68,7 @@ namespace lab
         void CreateObstacleMeshes();
         void CreateConeMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
         void CreateCylinderMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
+        void CreateSphereMesh(const std::string& name, float radius, int rings, int sectors, glm::vec3 color);
 
 
         // car state
@@ -78,6 +79,7 @@ namespace lab
         float forwardSpeed = 6.0f;   // units per second
         float lateralSpeed = 6.0f;
         float maxLateral = 4.0f;
+        int headlightsState = 1; // 1 = aprins, 0 = stins
 
         bool inputLeft = false;
         bool inputRight = false;
