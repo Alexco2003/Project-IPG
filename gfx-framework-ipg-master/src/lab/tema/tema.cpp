@@ -1371,6 +1371,26 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
     model = glm::translate(model, visualPosition);
     model = glm::rotate(model, carYaw, glm::vec3(0, 1, 0));
 
+	// vibratii tractor
+    float time = Engine::GetElapsedTime();
+
+    float frequency = 60.0f;
+    float amplitude = 0.005f;
+
+    if (inputForward) {
+        frequency = 70.0f; 
+        amplitude = 0.012f;  
+    }
+    else if (inputBack) {
+        frequency = 30.0f;
+        amplitude = 0.003f;
+    }
+
+
+    float vibration = sin(time * frequency) * amplitude;
+
+    model = glm::rotate(model, vibration, glm::vec3(0, 0, 1));
+    model = glm::translate(model, glm::vec3(0, vibration * 0.2f, 0));
     
     glm::mat4 bodyModel = glm::translate(model, glm::vec3(0.0f, 0.7f, 0.0f));
     if (locUseColor >= 0) glUniform1i(locUseColor, 0);
@@ -1379,6 +1399,8 @@ void Tema::RenderCar(const glm::mat4& view, const glm::mat4& proj)
 
     glm::mat4 cabinModel = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.6f));
     RenderSimpleMesh(meshes["tractor_cabin"], shader, cabinModel, mapTextures["truckCabin"]);
+
+
 
     glm::mat4 chimneyModel = glm::translate(model, glm::vec3(0.4f, 1.5f, -1.0f));
     RenderSimpleMesh(meshes["tractor_chimney"], shader, chimneyModel, mapTextures["planeTexture"]);
