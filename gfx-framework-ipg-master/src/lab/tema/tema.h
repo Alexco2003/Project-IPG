@@ -96,5 +96,10 @@ namespace lab
         std::vector<Particle> smokeParticles;
         void UpdateSmokeParticles(float deltaTimeSeconds);
         void RenderSmokeParticles();
+
+        float distanceTraveled = 0.0f;
+        int score = 0;
+        bool isGameOver = false;
+		bool isGameStarted = false;
     };
 }   // namespace lab

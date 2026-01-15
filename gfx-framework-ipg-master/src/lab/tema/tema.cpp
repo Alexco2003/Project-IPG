@@ -28,6 +28,7 @@ Tema::~Tema()
 
 void Tema::Init()
 {
+
     {
         Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crate.jpg");
         mapTextures["crate"] = texture;
@@ -179,8 +180,38 @@ void Tema::Init()
 	CreateObstacleMeshes();
 	InitObstacles();
 
+    score = 0;
+    distanceTraveled = 0.0f;
+	isGameOver = false;
+	isGameStarted = false;
+
     // TODO(student): Load other shaders
     LoadShader("TemaShader");
+
+
+    for (int i = 0; i < 100; i++) {
+        std::cout << std::endl;
+    }
+
+    std::cout << "=======================================================" << std::endl;
+    std::cout << "         W E L C O M E   T O   F A R M   R U S H       " << std::endl;
+    std::cout << "=======================================================" << std::endl;
+    std::cout << "                                                       " << std::endl;
+    std::cout << "   [ CONTROLS ]                                        " << std::endl;
+    std::cout << "     [W] / [S]    :   Accelerate / Brake               " << std::endl;
+    std::cout << "     [A] / [D]    :   Steer Left / Right               " << std::endl;
+    std::cout << "     [F]          :   Toggle Headlights                " << std::endl;
+    std::cout << "     [R]          :   Restart Game (On Game Over)      " << std::endl;
+    std::cout << "                                                       " << std::endl;
+    std::cout << "   [ MISSION ]                                         " << std::endl;
+    std::cout << "     > Dodge obstacles!                                " << std::endl;
+    std::cout << "     > Drive as far as possible to increase Score!     " << std::endl;
+    std::cout << "     > Good luck, driver!                              " << std::endl;
+    std::cout << "                                                       " << std::endl;
+    std::cout << "=======================================================" << std::endl;
+    std::cout << "      Waiting for start... PRESS [SPACE] TO PLAY!      " << std::endl;
+    std::cout << "=======================================================" << std::endl;
+    std::cout << std::endl;
 
 }
 
@@ -283,6 +314,59 @@ void Tema::FrameStart()
 
 void Tema::Update(float deltaTimeSeconds)
 {
+
+    // gameplay logic
+    if (!isGameStarted) {
+        return;
+	}
+	
+    if (isGameOver) {
+       
+        return;
+    }
+
+    float currentSpeed = forwardSpeed;
+    if (inputForward) currentSpeed *= 1.5f;
+    if (inputBack) currentSpeed *= 0.5f;
+
+    distanceTraveled += currentSpeed * deltaTimeSeconds;
+
+    int newScore = (int)(distanceTraveled / 10.0f);
+
+    if (newScore > score) {
+        score = newScore;
+        std::cout << ">>> SCORE: " << score << " <<<" << std::endl;
+        forwardSpeed += 0.1f; 
+    }
+
+
+    glm::vec3 forwardDir = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+    float backOffset = 7.5f;
+    glm::vec3 tractorCenter = carPosition - (forwardDir * backOffset);
+
+    float collisionRadius = 2.0f;
+
+    for (int i = 0; i < obstacles.size(); i++)
+    {
+
+        float dx = tractorCenter.x - obstacles[i].position.x;
+        float dz = tractorCenter.z - obstacles[i].position.z;
+        float d = sqrt(dx * dx + dz * dz);
+
+        if (d < collisionRadius)
+        {
+            isGameOver = true;
+
+			std::cout << std::endl;
+            std::cout << "===========================" << std::endl;
+            std::cout << "       GAME OVER!          " << std::endl;
+            std::cout << "   Final Score: " << score << std::endl;
+            std::cout << "   Press R to Restart      " << std::endl;
+            std::cout << "===========================" << std::endl;
+			std::cout << std::endl;
+        }
+    }
+
 	// lumini active
     activeStreetLights.clear();
     activeWindmillLights.clear();
@@ -1145,6 +1229,33 @@ void Tema::OnKeyPress(int key, int mods)
     if (key == GLFW_KEY_S) inputBack = true;
     if (key == GLFW_KEY_F) {
         headlightsState = 1 - headlightsState;
+    }
+
+    if (key == GLFW_KEY_ESCAPE) {
+        exit(0);
+	}
+
+    if (key == GLFW_KEY_SPACE && !isGameStarted) {
+        isGameStarted = true;
+        score = 0;
+        distanceTraveled = 0.0f;
+        forwardSpeed = 6.0f;
+        carPosition = glm::vec3(0, 0.5f, 0);
+        InitObstacles();
+        std::cout << "Game Started!" << std::endl;
+
+	}
+
+    if (key == GLFW_KEY_R && isGameOver) {
+        isGameOver = false;
+        score = 0;
+        distanceTraveled = 0.0f;
+        forwardSpeed = 6.0f;
+        carPosition = glm::vec3(0, 0.5f, 0);
+
+        InitObstacles();
+
+        std::cout << "Game Restarted!" << std::endl;
     }
 }
 
