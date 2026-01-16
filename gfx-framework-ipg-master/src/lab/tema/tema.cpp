@@ -205,6 +205,7 @@ void Tema::Init()
     std::cout << "     [F]          :   Toggle Headlights (Low Beams)    " << std::endl;
     std::cout << "     [G]          :   Toggle High Beams                " << std::endl;
     std::cout << "     [R]          :   Restart Game (On Game Over)      " << std::endl;
+    std::cout << "     [ESC]        :   Quit Game                        " << std::endl;
     std::cout << "                                                       " << std::endl;
     std::cout << "   [ MISSION ]                                         " << std::endl;
     std::cout << "     > Dodge obstacles!                                " << std::endl;
