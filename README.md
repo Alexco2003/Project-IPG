@@ -6,6 +6,10 @@ Heavily inspired by the classic **Subway Surfers**, this project reimagines the 
 
 > **Project Context:** This game was developed for the [Introduction to Computer Graphics](https://ocw.cs.pub.ro/courses/ipg) course, fulfilling the requirements of the [2025 Project Assignment](https://ocw.cs.pub.ro/courses/ipg/tema/2025).
 
+> 👉 [Watch Farm Rush - Gameplay Demo](https://youtu.be/OFpaMOxxv-g)
+>
+> [![Watch on YouTube](https://img.shields.io/badge/Watch_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/OFpaMOxxv-g)
+
 ## 🎮 Gameplay Features
 
 * **Procedural Level Generation:** Utilizes a deterministic pseudo-random hashing algorithm to spawn environmental assets (trees, windmills) and a randomized pooling system for obstacles, ensuring a unique layout for every run.
