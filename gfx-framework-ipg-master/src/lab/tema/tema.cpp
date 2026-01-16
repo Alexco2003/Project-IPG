@@ -30,116 +30,116 @@ void Tema::Init()
 {
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crate.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\crate.jpg");
         mapTextures["crate"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\horse.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\horse.jpg");
 		mapTextures["horse"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\sapca.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\sapca.jpg");
         mapTextures["sapca"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\camasa.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\camasa.jpg");
         mapTextures["camasa"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\blugi.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\blugi.jpg");
         mapTextures["blugi"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\sack.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\sack.jpg");
         mapTextures["face"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\lamp.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\lamp.jpg");
         mapTextures["lamp"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\door.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\door.jpg");
         mapTextures["door"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\brickLight.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\brickLight.jpg");
         mapTextures["brickLight"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\window.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\window.jpg");
         mapTextures["window"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\brick.jpeg");
+        Texture2D* texture = LoadTexture("assets\\textures\\brick.jpeg");
         mapTextures["brick"] = texture;
     }
 
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\trunchiTexture.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\trunchiTexture.jpg");
         mapTextures["trunchiTexture"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\crateX.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\crateX.jpg");
         mapTextures["crateX"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\planeTexture.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\planeTexture.jpg");
         mapTextures["planeTexture"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\grass.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\grass.jpg");
         mapTextures["grass"] = texture;
     }
 
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\frunze.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\frunze.jpg");
         mapTextures["frunze"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\apple.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\apple.jpg");
         mapTextures["apple"] = texture;
     }
 
     {
 
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\dirt.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\dirt.jpg");
         mapTextures["dirt"] = texture;
     }
 
     {
 
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\wheel.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\wheel.jpg");
         mapTextures["wheel"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\truckBody.jpeg");
+        Texture2D* texture = LoadTexture("assets\\textures\\truckBody.jpeg");
         mapTextures["truckBody"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\truckCabin.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\truckCabin.jpg");
         mapTextures["truckCabin"] = texture;
     }
 
     {
-        Texture2D* texture = LoadTexture("src\\lab\\tema\\images\\fan.jpg");
+        Texture2D* texture = LoadTexture("assets\\textures\\fan.jpg");
         mapTextures["fan"] = texture;
     }
 
@@ -1324,7 +1324,7 @@ void Tema::CreateMeshGrid(const char* name, int cols, int rows)
 
 void Tema::LoadShader(const std::string& name)
 {
-    std::string shaderPath = PATH_JOIN(window->props.selfDir, "src/lab", "tema", "shaders");
+    std::string shaderPath = PATH_JOIN(window->props.selfDir, "assets", "shaders");
 
     // Create a shader program
     {
