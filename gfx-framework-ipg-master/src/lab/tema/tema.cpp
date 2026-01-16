@@ -187,6 +187,8 @@ void Tema::Init()
 
     // TODO(student): Load other shaders
     LoadShader("TemaShader");
+	LoadShader("ShadowShader");
+	InitShadowMap();
 
 
     for (int i = 0; i < 100; i++) {
@@ -200,7 +202,8 @@ void Tema::Init()
     std::cout << "   [ CONTROLS ]                                        " << std::endl;
     std::cout << "     [W] / [S]    :   Accelerate / Brake               " << std::endl;
     std::cout << "     [A] / [D]    :   Steer Left / Right               " << std::endl;
-    std::cout << "     [F]          :   Toggle Headlights                " << std::endl;
+    std::cout << "     [F]          :   Toggle Headlights (Low Beams)    " << std::endl;
+    std::cout << "     [G]          :   Toggle High Beams                " << std::endl;
     std::cout << "     [R]          :   Restart Game (On Game Over)      " << std::endl;
     std::cout << "                                                       " << std::endl;
     std::cout << "   [ MISSION ]                                         " << std::endl;
@@ -314,6 +317,79 @@ void Tema::FrameStart()
 
 void Tema::Update(float deltaTimeSeconds)
 {
+
+    // randare umbre
+    glm::vec3 fwd = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+    glm::vec3 rgt = glm::normalize(glm::cross(fwd, glm::vec3(0, 1, 0)));
+    float bOffset = 7.5f;
+    glm::vec3 visualCarPos = carPosition - (fwd * bOffset);
+
+    float height = 4.5f;
+    float spread = 0.2f;
+    float fwdOffsetLights = -5.5f;
+
+    glm::vec3 sPos[3];
+    glm::vec3 sDir[3];
+
+    sPos[0] = visualCarPos + (fwd * fwdOffsetLights) + glm::vec3(0, height, 0);
+    sPos[1] = visualCarPos + (fwd * fwdOffsetLights) - (rgt * spread) + glm::vec3(0, height, 0);
+    sPos[2] = visualCarPos + (fwd * fwdOffsetLights) + (rgt * spread) + glm::vec3(0, height, 0);
+
+    sDir[0] = glm::normalize((fwd * 1.0f) + glm::vec3(0.0f, -0.25f, 0.0f));
+    sDir[1] = glm::normalize((fwd * 0.9f) - (rgt * 0.4f) + glm::vec3(0.0f, -0.35f, 0.0f));
+    sDir[2] = glm::normalize((fwd * 0.9f) + (rgt * 0.4f) + glm::vec3(0.0f, -0.35f, 0.0f));
+
+    glm::mat4 shadowProj = glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f);
+
+    Shader* shadowShader = shaders["ShadowShader"];
+    glUseProgram(shadowShader->program);
+    glUniform3fv(glGetUniformLocation(shadowShader->program, "playerPos"), 1, glm::value_ptr(carPosition));
+    glUniform1f(glGetUniformLocation(shadowShader->program, "curvatureFactor"), 0.002f);
+
+    glViewport(0, 0, 2048, 2048);
+
+    if (overheadLightsState == 1) {
+        for (int i = 0; i < 3; i++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO[i]);
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            glm::mat4 shadowView = glm::lookAt(sPos[i], sPos[i] + sDir[i], glm::vec3(0, 1, 0));
+            lightSpaceMatrices[i] = shadowProj * shadowView;
+
+            glUniformMatrix4fv(glGetUniformLocation(shadowShader->program, "LightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrices[i]));
+
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_FRONT);
+            for (int i = 0; i < obstacles.size(); i++)
+            {
+
+                if (obstacles[i].position.z > carPosition.z + 20.0f)
+                {
+
+                    obstacles[i].position.z = carPosition.z - 300.0f;
+                    obstacles[i].position.x = (rand() % 80 / 10.0f) - 4.0f;
+                    //obstacles[i].type = rand() % 4;
+
+
+                    int type = obstacles[i].type;
+                    if (type == 0) obstacles[i].position.y = 0.0f;
+                    else if (type == 1) obstacles[i].position.y = 0.0f;
+                    else if (type == 2) obstacles[i].position.y = 0.0f;
+                    else if (type == 3) obstacles[i].position.y = 0.0f;
+                    /*       else if (type == 4) obstacles[i].position.y = 0.05f;*/
+                }
+            }
+            RenderObstacles(shaders["ShadowShader"], 30.0f);
+            glCullFace(GL_BACK);
+            glDisable(GL_CULL_FACE);
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glm::ivec2 resolution = window->GetResolution();
+    glViewport(0, 0, resolution.x, resolution.y);
+
 
     // gameplay logic
     if (!isGameStarted) {
@@ -471,8 +547,8 @@ void Tema::Update(float deltaTimeSeconds)
         
         {
             float segmentLength = 4.0f;
-            int numSegmentsBehind = 5;
-            int numSegmentsFront = 25;
+            int numSegmentsBehind = 2;
+            int numSegmentsFront = 12;
 
             int currentGridIndex = (int)round(carPosition.z / segmentLength);
             float startZ = (currentGridIndex + numSegmentsBehind) * segmentLength;
@@ -501,8 +577,8 @@ void Tema::Update(float deltaTimeSeconds)
   
             float manualOffsetZ = 0.0f;
 
-            int lampsBehind = 2;
-            int lampsFront = 10; 
+            int lampsBehind = 1;
+            int lampsFront = 6; 
 
           
             int lampGridIndex = (int)round(carPosition.z / lampSpacing);
@@ -560,8 +636,8 @@ void Tema::Update(float deltaTimeSeconds)
         float stepX = 3.5f;
 
         float segmentZ = 4.5f;
-        int rowsBehind = 5;
-        int rowsFront = 35;
+        int rowsBehind = 3;
+        int rowsFront = 8;
         float startZ = ((int)(carPosition.z / segmentZ) * segmentZ) + (rowsBehind * segmentZ);
 
         for (int i = 0; i < rowsBehind + rowsFront; i++)
@@ -755,7 +831,7 @@ void Tema::Update(float deltaTimeSeconds)
      /*       else if (type == 4) obstacles[i].position.y = 0.05f;*/
         }
     }
-    RenderObstacles();
+    RenderObstacles(shaders["TemaShader"], 70.0f);
 }
 
 
@@ -897,6 +973,53 @@ void Tema::RenderSimpleMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMa
         glUniform3fv(glGetUniformLocation(shader->program, "windmillLightPos"), millsToSend, glm::value_ptr(activeWindmillLights[0]));
     }
 
+
+    // reflectoare
+    glm::vec3 fwd = glm::vec3(sin(carYaw), 0.0f, -cos(carYaw));
+    glm::vec3 rgt = glm::normalize(glm::cross(fwd, glm::vec3(0, 1, 0)));
+
+    float bOffset = 7.5f;
+
+    float height = 4.5f;
+    float spread = 0.2f;
+
+    glm::vec3 overPos[3];
+
+    float forwardOffset = -3.5f;
+
+    overPos[0] = visualCarPos + (fwd * forwardOffset) + glm::vec3(0, height, 0);                 
+    overPos[1] = visualCarPos + (fwd * forwardOffset) - (rgt * spread) + glm::vec3(0, height, 0); 
+    overPos[2] = visualCarPos + (fwd * forwardOffset) + (rgt * spread) + glm::vec3(0, height, 0); 
+
+    glm::vec3 overDir[3];
+
+    overDir[0] = glm::normalize((fwd * 1.0f) + glm::vec3(0.0f, -0.25f, 0.0f));
+    overDir[1] = glm::normalize((fwd * 0.9f) - (rgt * 0.4f) + glm::vec3(0.0f, -0.35f, 0.0f));
+    overDir[2] = glm::normalize((fwd * 0.9f) + (rgt * 0.4f) + glm::vec3(0.0f, -0.35f, 0.0f));
+
+
+    GLint locOverPos = glGetUniformLocation(shader->program, "u_OverheadPos");
+    GLint locOverDir = glGetUniformLocation(shader->program, "u_OverheadDir");
+    GLint locOverActive = glGetUniformLocation(shader->program, "u_OverheadActive");
+
+    if (locOverPos >= 0) glUniform3fv(locOverPos, 3, glm::value_ptr(overPos[0]));
+    if (locOverDir >= 0) glUniform3fv(locOverDir, 3, glm::value_ptr(overDir[0]));
+
+    glUniform1i(locOverActive, overheadLightsState);
+
+
+    for (int i = 0; i < 3; i++) {
+        std::string name = "LightSpaceMatrix[" + std::to_string(i) + "]";
+        GLint loc = glGetUniformLocation(shader->program, name.c_str());
+        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrices[i]));
+
+ 
+        std::string texName = "shadowMap[" + std::to_string(i) + "]";
+        glActiveTexture(GL_TEXTURE2 + i);
+        glBindTexture(GL_TEXTURE_2D, shadowMapTexture[i]);
+        glUniform1i(glGetUniformLocation(shader->program, texName.c_str()), 2 + i);
+    }
+
     // Draw the object
     glBindVertexArray(mesh->GetBuffers()->m_VAO);
     glDrawElements(mesh->GetDrawMode(), static_cast<int>(mesh->indices.size()), GL_UNSIGNED_INT, 0);
@@ -1001,9 +1124,8 @@ void Tema::CreateObstacleMeshes()
     CreateConeMesh("cone_body_smooth", 0.6f, 2.5f, 30, glm::vec3(1.0f, 0.5f, 0.0f));
 }
 
-void Tema::RenderObstacles()
+void Tema::RenderObstacles(Shader* shader, float drawDistance)
 {
-    Shader* shader = shaders["TemaShader"];
     if (!shader) return;
 
     glUseProgram(shader->program);
@@ -1014,6 +1136,10 @@ void Tema::RenderObstacles()
 
     for (const auto& obs : obstacles)
     {
+        float dist = abs(obs.position.z - carPosition.z);
+
+        if (dist > drawDistance) continue;
+
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, obs.position);
         
@@ -1227,8 +1353,13 @@ void Tema::OnKeyPress(int key, int mods)
     if (key == GLFW_KEY_D) inputRight = true;
     if (key == GLFW_KEY_W) inputForward = true;
     if (key == GLFW_KEY_S) inputBack = true;
+
     if (key == GLFW_KEY_F) {
         headlightsState = 1 - headlightsState;
+    }
+
+    if (key == GLFW_KEY_G) {
+        overheadLightsState = 1 - overheadLightsState;
     }
 
     if (key == GLFW_KEY_ESCAPE) {
@@ -1676,4 +1807,33 @@ void Tema::CreateSphereMesh(const std::string& name, float radius, int rings, in
     Mesh* mesh = new Mesh(name);
     mesh->InitFromData(vertices, indices);
     meshes[mesh->GetMeshID()] = mesh;
+}
+
+void Tema::InitShadowMap()
+{
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+
+    for (int i = 0; i < 3; i++) {
+        glGenFramebuffers(1, &shadowMapFBO[i]);
+
+        glGenTextures(1, &shadowMapTexture[i]);
+        glBindTexture(GL_TEXTURE_2D, shadowMapTexture[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+            SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapTexture[i], 0);
+
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }

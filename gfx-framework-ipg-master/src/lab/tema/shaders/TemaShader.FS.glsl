@@ -40,6 +40,11 @@ uniform vec3 windmillLightPos[20];
 uniform int windmillLightCount;
 uniform vec3 windmillLightColor;
 
+// faza lunga cu umbre
+uniform vec3 u_OverheadPos[3];
+uniform vec3 u_OverheadDir[3];
+uniform int  u_OverheadActive;
+
 // camera
 uniform vec3 eyePos = vec3(0.0, 2.0, 5.0);
 
@@ -48,6 +53,10 @@ uniform float time = 0.0;
 
 uniform vec3 playerPos;       
 uniform float curvatureFactor; 
+
+// Shadow mapping
+uniform sampler2D shadowMap[3];
+uniform mat4 LightSpaceMatrix[3];
 
 
 vec3 ComputePointLight(vec3 lightPos, vec3 col)
@@ -99,6 +108,36 @@ vec3 ApplyCurvature(vec3 position) {
     float dist = distance(position.xz, playerPos.xz);
     position.y -= (dist * dist) * curvatureFactor;
     return position;
+}
+
+float ShadowCalculation(vec4 fragPosLightSpace, int index, vec3 normal, vec3 lightDir)
+{
+
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    
+
+    if(projCoords.z > 1.0) return 0.0;
+
+
+    float currentDepth = projCoords.z;
+    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);
+
+
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap[index], 0);
+    
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap[index], projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0; 
+
+    return shadow;
 }
 
 void main()
@@ -166,6 +205,24 @@ void main()
     if (u_UseEmission == 1) {
         float pulse = (sin(time * u_EmissionSpeed) * 0.5 + 0.5) * u_EmissionIntensity;
         emission = u_EmissionColor * pulse;
+    }
+
+    // umbre faza lunga
+    if (u_OverheadActive == 1) {
+        float intensity = 10.0;
+        float cutOffAngle = 10.0;
+
+        for(int i = 0; i < 3; i++) {
+             vec4 fragPosLightSpace = LightSpaceMatrix[i] * vec4(v_FragPos, 1.0);
+
+             vec3 L = normalize(u_OverheadPos[i] - v_FragPos);
+             vec3 N = normalize(v_Normal);
+
+             float shadow = ShadowCalculation(fragPosLightSpace, i, N, L);
+
+             vec3 lightVal = ComputeSpotLight(u_OverheadPos[i], u_OverheadDir[i], vec3(0.9, 0.9, 1.0) * intensity, cutOffAngle);
+             totalLight += lightVal * (1.0 - shadow);
+        }
     }
 
     vec3 color = ambient + diffuse + specular + (totalLight * baseColor) + emission;

@@ -64,7 +64,7 @@ namespace lab
 		// obstacles
         std::vector<Obstacle> obstacles;
         void InitObstacles();                    
-        void RenderObstacles();   
+        void RenderObstacles(Shader* shader, float drawDistance);
         void CreateObstacleMeshes();
         void CreateConeMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
         void CreateCylinderMesh(const std::string& name, float radius, float height, int slices, glm::vec3 color);
@@ -101,5 +101,13 @@ namespace lab
         int score = 0;
         bool isGameOver = false;
 		bool isGameStarted = false;
+
+        // umbre
+        GLuint shadowMapFBO[3];     // framebufferele
+        GLuint shadowMapTexture[3]; // texturile de adancime
+        void InitShadowMap();       
+
+        glm::mat4 lightSpaceMatrices[3]; 
+		int overheadLightsState = 1; // 1 = aprins, 0 = stins
     };
 }   // namespace lab
