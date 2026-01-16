@@ -40,6 +40,15 @@ You can download the latest playable build from the [Releases](../../releases) t
 3.  Extract the archive to a folder on your computer.
 4.  Run **`Farm Run.exe`** to start the game.
 
+## ⚙️ Development Setup
+
+If you want to build the project from source or modify the code, you need to configure the development environment first.
+
+Please refer to the internal documentation found in the framework folder or check the official setup tutorial:
+
+* 📖 **Framework Documentation:** [Read the Framework README](./gfx-framework-ipg-master/README.md)
+* 🎓 **Step-by-Step Tutorial:** [OCW Setup Guide](https://ocw.cs.pub.ro/courses/ipg/setup-framework)
+
 ## 🛠️ Built With
 
 * **C++**
