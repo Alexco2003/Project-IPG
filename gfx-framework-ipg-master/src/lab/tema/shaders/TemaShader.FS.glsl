@@ -1,4 +1,4 @@
-﻿#version 330 core
+#version 330 core
 
 in vec3 v_FragPos;
 in vec3 v_Normal;
